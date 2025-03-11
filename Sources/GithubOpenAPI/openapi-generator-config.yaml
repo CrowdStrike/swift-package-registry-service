@@ -1,0 +1,12 @@
+accessModifier: public
+generate:
+  - types
+  - client
+filter:
+  operations:
+    - "repos/list-tags"
+    - "repos/list-releases"
+    - "repos/get-latest-release"
+    - "repos/get-release-by-tag"
+    - "repos/get-content"
+namingStrategy: idiomatic
