@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "NeedleTail",
+    name: "swift-package-registry-service",
     platforms: [
        .macOS(.v13)
     ],
