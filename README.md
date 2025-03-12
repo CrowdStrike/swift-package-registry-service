@@ -1,4 +1,4 @@
-# Github-based Swift Package Registry Service 
+# Swift Package Registry Service 
 
 This is an implementation of the Swift Package Registry Service which proxies the Github API.
 
@@ -6,7 +6,7 @@ This is an implementation of the Swift Package Registry Service which proxies th
 
 ### Github Personal Access Token
 
-The [Github API](https://docs.github.com/en/rest?apiVersion=2022-11-28) is accessible without authentication.
+Many methods of the [Github API](https://docs.github.com/en/rest?apiVersion=2022-11-28) is accessible without authentication.
 However, the [rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28)
 are much lower. Therefore, it is advisable to provide the service with a
 [Github Personal Access Token (PAT)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
@@ -15,29 +15,23 @@ to authenticate with the Github API.
 ### Using Xcode
 
 1. In Xcode, do File/Open and open the `Package.swift` in this repository. Allow package resolution to finish.
-2. Choose the "NeedleTail" scheme (should be chosen automatically.)
-3. Click on the NeedleTail scheme and choose Edit Scheme.
+2. Make sure that the target build device is "My Mac".
+3. Click on the `swift-package-registry-service` scheme and choose "Edit Scheme".
 4. Choose the "Run" action in the left-hand pane.
 5. Choose the "Arguments" tab in the top-center.
-6. In the "Environment Variables" section, replace the `GITHUB_API_TOKEN` with your Github Personal Access Token.
-   The service will still run without this, but you may hit Github API rate limits.
-7. Choose the "Options" tab in the top-center.
-8. Select the checkbox beside "Use custom working directory" and choose the directory where you cloned the repository.
-9. Choose Close in the bottom right to finish editing the "NeedleTail" scheme.
-10. Click the Play button in the upper-left to Build and Run.
+6. In the "Environment Variables" section, click the "+" button.
+7. Name the new environment variable `GITHUB_API_TOKEN`.
+8. Set the value of `GITHUB_API_TOKEN` to be your Github Personal Access Token.
+9. Choose the "Options" tab in the top-center.
+10. Select the checkbox beside "Use custom working directory" and choose the directory where you cloned the repository.
+11. Choose Close in the bottom right to finish editing the `swift-package-registry-service` scheme.
+12. Click the Play button in the upper-left to Build and Run.
 
 Once the build has succeeded and the server started, you should see something like this in the Xcode console:
 
 ```
-[ DEBUG ] Could not load .env.development file: open(file:oFlag:mode:): No such file or directory (errno: 2) (Vapor/DotEnv.swift:296)
-[ DEBUG ] Could not load .env file: open(file:oFlag:mode:): No such file or directory (errno: 2) (Vapor/DotEnv.swift:296)
-[ DEBUG ] Server starting on http://127.0.0.1:8080 (Vapor/HTTPServer.swift:330)
-[ NOTICE ] Server started on http://127.0.0.1:8080 (Vapor/HTTPServer.swift:357)
+[ NOTICE ] Server started on http://127.0.0.1:8080
 ```
-
-The first two messages are related to the fact that we are not setting an `.env` file in the working directory.
-We don't have to do this since we are setting environment variables via Xcode. So these two messages
-can be ignored.
 
 If you see a message something like this in the Xcode console:
 
@@ -45,15 +39,15 @@ If you see a message something like this in the Xcode console:
 [ WARNING ] No custom working directory set for this scheme, using /Users/ehyche/Library/Developer/Xcode/DerivedData/swift-package-registry-service-github-bwqdugfplzkkyueszneqimmdhxqo/Build/Products/Debug (Vapor/DirectoryConfiguration.swift:57)
 ```
 
-then you have forgotten to set the Custom Working Directory in Step 8 above.
+then you have forgotten to set the Custom Working Directory in Step 10 above.
 
 ### Using Command Line
 
 If you want to build and run using the `swift` command line, then do the following:
 
 ```
-git clone https://bitbucket.cicd.dc/scm/consu/swift-package-registry-service-github.git
-cd swift-package-registry-service-github
+git clone https://github.com/CrowdStrike/swift-package-registry-service.git
+cd swift-package-registry-service
 export GITHUB_API_TOKEN="<your-Github-PAT>"
 swift run
 ```
