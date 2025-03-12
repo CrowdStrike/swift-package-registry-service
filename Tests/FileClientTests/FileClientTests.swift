@@ -1,10 +1,3 @@
-//
-//  Test.swift
-//  NeedleTail
-//
-//  Created by Eric Hyche on 3/3/25.
-//
-
 @testable import FileClient
 import _NIOFileSystem
 import Testing
