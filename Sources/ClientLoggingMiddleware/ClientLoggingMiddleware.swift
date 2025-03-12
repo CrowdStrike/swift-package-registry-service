@@ -1,8 +1,3 @@
-//
-//  CrowdStrike, Inc. CONFIDENTIAL AND PROPRIETARY
-//  CrowdStrike, Inc. Copyright (c) 2024. All rights reserved.
-//
-
 import Foundation
 import HTTPTypes
 import OpenAPIRuntime
