@@ -167,17 +167,16 @@ So the question becomes: how should Swift Package Manager treat the two differen
 As explained [here](https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/PackageRegistryUsage.md#using-registry-for-source-control-dependencies),
 we have three choices:
 
-1. Treat "apple.swift-collections" and "https://github.com/apple/swift-collections.git" as completely
-   dependencies. The "apple.swift-collections" dependency will be resolved via the package registry,
-   and "https://github.com/apple/swift-collections.git" will be resolved by cloning the respository.
-   **Note that this option will likely result in duplicate symbol errors**, since the identical library
-   is included twice.
-2. Still fetch "apple.swift-collections" from the registry and clone "https://github.com/apple/swift-collections.git",
-   but use the registry "lookup identifier" endpoint to determine if they are, in fact, the same dependency.
-3. Use to registry's "lookup identifier" endpoint to determine whether or not
+- **Option 1** Treat "apple.swift-collections" and "https://github.com/apple/swift-collections.git" as
+  completely different dependencies. The "apple.swift-collections" dependency will be resolved via the package registry, and "https://github.com/apple/swift-collections.git" will be resolved by cloning the respository.
+  **Note that this option will likely result in duplicate symbol errors**, since the identical library
+  is included twice.
+- **Option 2**. Still fetch "apple.swift-collections" from the registry and clone
+  "https://github.com/apple/swift-collections.git", but use the registry "lookup identifier" endpoint
+  to determine if they are, in fact, the same dependency.
+- **Option 3**. Use to registry's "lookup identifier" endpoint to determine whether or not
    "https://github.com/apple/swift-collections.git" is, in fact, the same as "apple.swift-collections".
-   If it is, then replace all usages of "https://github.com/apple/swift-collections.git" with "apple.swift-collections"
-   and use the registry whenever possible.
+   If it is, then replace all usages of "https://github.com/apple/swift-collections.git" with "apple.swift-collections" and use the registry whenever possible.
 
 ## Specifying transitive dependency policy via command line
 
@@ -209,7 +208,6 @@ the `-defaultPackageRegistryURL` option:
 ```
 xcodebuild -defaultPackageRegistryURL "http://127.0.0.1:8080/"
 ```
-
 
 ## Specification Support
 
