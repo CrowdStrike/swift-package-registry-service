@@ -3,39 +3,6 @@ import GithubAPIClient
 import GithubOpenAPI
 import OpenAPIRuntime
 
-extension Operations.ReposListReleases.Output {
-
-    var asOutput: GithubAPIClient.RepositoryListReleases.Output {
-        switch self {
-        case .ok(let okBody):
-            .ok(okBody.asOKBody)
-        case .notFound:
-            .notFound
-        case .undocumented(let statusCode, _):
-            .other(statusCode)
-        }
-    }
-}
-
-extension Operations.ReposListReleases.Output.Ok {
-
-    var asOKBody: GithubAPIClient.RepositoryListReleases.Output.OKBody {
-        .init(
-            linkHeader: headers.link,
-            releases: body.releases.map(\.asRelease)
-        )
-    }
-}
-
-extension Operations.ReposListReleases.Output.Ok.Body {
-
-    var releases: [Components.Schemas.Release] {
-        switch self {
-        case .json(let releases): releases
-        }
-    }
-}
-
 extension Operations.ReposGetLatestRelease.Output {
     var asOutput: GithubAPIClient.GetLatestRelease.Output {
         switch self {

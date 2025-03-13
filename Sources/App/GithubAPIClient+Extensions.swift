@@ -2,39 +2,6 @@ import APIUtilities
 import GithubAPIClient
 import Vapor
 
-extension GithubAPIClient.RepositoryListReleases.Input {
-    mutating func updatePageInfo(_ pageInfo: APIUtilities.PageInfo) {
-        perPage = pageInfo.perPage
-        page = pageInfo.page
-    }
-}
-
-extension GithubAPIClient.RepositoryListReleases.Output {
-
-    var nextPage: APIUtilities.PageInfo? {
-        guard case .ok(let okBody) = self else {
-            return nil
-        }
-        return APIUtilities.nextPage(forLinkHeader: okBody.linkHeader)
-    }
-
-    mutating func updateWithNextPage(_ pageOutput: Self) {
-        switch (self, pageOutput) {
-        case let (.ok(okBodySelf), .ok(okBodyPage)):
-            self = .ok(
-                .init(
-                    // TODO: preserve non-pagination-related link headers
-                    linkHeader: nil,
-                    releases: okBodySelf.releases + okBodyPage.releases
-                )
-            )
-        default:
-            // If we are an error, then don't update
-            break
-        }
-    }
-}
-
 extension GithubAPIClient.ListRepositoryTags.Input {
     mutating func updatePageInfo(_ pageInfo: APIUtilities.PageInfo) {
         perPage = pageInfo.perPage

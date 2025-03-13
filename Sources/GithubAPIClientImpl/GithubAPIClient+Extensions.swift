@@ -2,16 +2,6 @@ import GithubAPIClient
 import GithubOpenAPI
 import OpenAPIRuntime
 
-extension GithubAPIClient.RepositoryListReleases.Input {
-    var asInput: Operations.ReposListReleases.Input {
-        .init(
-            path: .init(owner: owner, repo: repo),
-            query: .init(perPage: perPage, page: page),
-            headers: .init(accept: [.init(contentType: .json)])
-        )
-    }
-}
-
 extension GithubAPIClient.ListRepositoryTags.Input {
     var asInput: Operations.ReposListTags.Input {
         .init(

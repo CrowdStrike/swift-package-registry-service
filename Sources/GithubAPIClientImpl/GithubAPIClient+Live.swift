@@ -25,9 +25,6 @@ extension GithubAPIClient {
             middlewares: middlewares
         )
         return Self(
-            repositoryListReleases: {
-                try await client.reposListReleases($0.asInput).asOutput
-            },
             listRepositoryTags: {
                 try await client.reposListTags($0.asInput).toOutput(perPage: $0.perPage, page: $0.page)
             },

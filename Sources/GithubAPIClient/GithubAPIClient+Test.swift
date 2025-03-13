@@ -4,16 +4,12 @@ import Overture
 extension GithubAPIClient {
 
     public static func test(
-        repositoryListReleases: (@Sendable (RepositoryListReleases.Input) async throws -> RepositoryListReleases.Output)? = nil,
         listRepositoryTags: (@Sendable (ListRepositoryTags.Input) async throws -> ListRepositoryTags.Output)? = nil,
         getLatestRelease: (@Sendable (GetLatestRelease.Input) async throws -> GetLatestRelease.Output)? = nil,
         getReleaseByTagName: (@Sendable (GetReleaseByTagName.Input) async throws -> GetReleaseByTagName.Output)? = nil,
         getContent: (@Sendable (GetContent.Input) async throws -> GetContent.Output)? = nil
     ) -> Self {
         update(.mock) {
-            if let repositoryListReleases {
-                $0.repositoryListReleases = repositoryListReleases
-            }
             if let listRepositoryTags {
                 $0.listRepositoryTags = listRepositoryTags
             }
@@ -30,15 +26,11 @@ extension GithubAPIClient {
     }
 
     public static func testOutput(
-        repositoryListReleasesOutput: RepositoryListReleases.Output? = nil,
         listRepositoryTagsOutput: ListRepositoryTags.Output? = nil,
         getReleaseByTagNameOutput: GetReleaseByTagName.Output? = nil,
         getContentOutput: GetContent.Output? = nil
     ) -> Self {
         update(.mock) {
-            if let repositoryListReleasesOutput {
-                $0.repositoryListReleases = { _ in repositoryListReleasesOutput }
-            }
             if let listRepositoryTagsOutput {
                 $0.listRepositoryTags = { _ in listRepositoryTagsOutput }
             }
