@@ -5,7 +5,16 @@ import PersistenceClient
 import Vapor
 
 extension PackageRegistryController {
-    func syncManifests(owner: String, repo: String, version: Version) async throws -> [PersistenceClient.Manifest] {
+
+    static func syncManifests(
+        owner: String,
+        repo: String,
+        version: Version,
+        persistenceClient: PersistenceClient,
+        githubAPIClient: GithubAPIClient,
+        tagsActor: TagsActor,
+        logger: Logger
+    ) async throws ->  [PersistenceClient.Manifest] {
         // Attempt to read in all of the package manifests from cache
         let manifests = try await persistenceClient.readManifests(owner: owner, repo: repo, version: version)
         guard manifests.isEmpty else {
@@ -18,7 +27,7 @@ extension PackageRegistryController {
         // almost always comes after the listPackageReleases call in SPM, then
         // we assume that we already did a tag sync when the listPackageReleases
         // was called. So we don't force a sync now.
-        let tagFile = try await syncTags(owner: owner, repo: repo, forceSync: false)
+        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: false)
 
         // Look up the tag name for the requested semantic version
         guard let tagName = tagFile.versionToTagName[version] else {

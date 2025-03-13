@@ -5,7 +5,16 @@ import PersistenceClient
 import Vapor
 
 extension PackageRegistryController {
-    func syncReleaseMetadata(owner: String, repo: String, version: Version) async throws -> PersistenceClient.ReleaseMetadata {
+
+    static func syncReleaseMetadata(
+        owner: String,
+        repo: String,
+        version: Version,
+        persistenceClient: PersistenceClient,
+        checksumClient: ChecksumClient,
+        logger: Logger,
+        tagsActor: TagsActor
+    ) async throws -> PersistenceClient.ReleaseMetadata {
         if let cachedReleaseMetadata = try await persistenceClient.readReleaseMetadata(owner: owner, repo: repo, version: version) {
             logger.debug("Found cached release metadata for \"\(owner).\(repo)\" version: \(version)")
             return cachedReleaseMetadata
@@ -17,7 +26,7 @@ extension PackageRegistryController {
         // almost always comes after the listPackageReleases call in SPM, then
         // we assume that we already did a tag sync when the listPackageReleases
         // was called. So we don't force a sync now.
-        let tagFile = try await syncTags(owner: owner, repo: repo, forceSync: false)
+        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: false)
 
         // Look up a tag with the requested semantic version
         guard

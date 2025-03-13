@@ -35,6 +35,7 @@ enum Entrypoint {
                     cacheRootDirectory: app.directory.workingDirectory.appending(".sprsCache/"),
                     githubAPIToken: githubAPIToken
                 ),
+                logger: app.logger,
                 githubAPIToken: githubAPIToken,
                 clientSupportsPagination: Environment.get("CLIENT_SUPPORTS_PAGINATION").flatMap(Bool.init) ?? false
             )

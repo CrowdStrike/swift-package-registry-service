@@ -17,7 +17,7 @@ extension PackageRegistryController {
 
         // Sync the tags with the Github API and return the cached tags.
         // For this endpoint, we will always sync with the API.
-        let tagFile = try await syncTags(owner: owner, repo: repo, forceSync: true)
+        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: true)
 
         // The PersistenceClient.TagFile already has a [Version: String] map.
         // So we just need to send the keys to that map. Those are only

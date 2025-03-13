@@ -11,6 +11,7 @@ public func configure(
     checksumClient: ChecksumClient,
     httpStreamClient: HTTPStreamClient,
     persistenceClient: PersistenceClient,
+    logger: Logger,
     githubAPIToken: String,
     clientSupportsPagination: Bool = false
 ) async throws {
@@ -32,7 +33,8 @@ public func configure(
         githubAPIClient: githubAPIClient,
         checksumClient: checksumClient,
         httpStreamClient: httpStreamClient,
-        persistenceClient: persistenceClient
+        persistenceClient: persistenceClient,
+        logger: logger
     )
 
     try app.register(collection: controller)

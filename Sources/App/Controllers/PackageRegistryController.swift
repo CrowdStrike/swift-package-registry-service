@@ -1,11 +1,14 @@
 import Dependencies
 import ChecksumClient
+import Foundation
 import GithubAPIClient
 import HTTPStreamClient
 import PersistenceClient
 import Vapor
 
 struct PackageRegistryController: RouteCollection {
+    typealias GetDateNow = @Sendable () -> Date
+
     let serverURLString: String
     let clientSupportsPagination: Bool
     let githubAPIToken: String
@@ -13,7 +16,73 @@ struct PackageRegistryController: RouteCollection {
     let checksumClient: ChecksumClient
     let httpStreamClient: HTTPStreamClient
     let persistenceClient: PersistenceClient
-    let logger = Logger(label: "PackageRegistryController")
+    let logger: Logger
+    let getDateNow: GetDateNow
+    let tagsActor: TagsActor
+    let releaseMetadataActor: ReleaseMetadataActor
+    let manifestsActor: ManifestsActor
+
+    init(
+        serverURLString: String,
+        clientSupportsPagination: Bool,
+        githubAPIToken: String,
+        githubAPIClient: GithubAPIClient,
+        checksumClient: ChecksumClient,
+        httpStreamClient: HTTPStreamClient,
+        persistenceClient: PersistenceClient,
+        logger: Logger,
+        getDateNow: @escaping GetDateNow = { Date.now }
+    ) {
+        self.serverURLString = serverURLString
+        self.clientSupportsPagination = clientSupportsPagination
+        self.githubAPIToken = githubAPIToken
+        self.githubAPIClient = githubAPIClient
+        self.checksumClient = checksumClient
+        self.httpStreamClient = httpStreamClient
+        self.persistenceClient = persistenceClient
+        self.logger = logger
+        self.getDateNow = getDateNow
+
+        let tagsActor = TagsActor { owner, repo, forceSync in
+            try await Self.syncTags(
+                owner: owner,
+                repo: repo,
+                forceSync: forceSync,
+                persistenceClient: persistenceClient,
+                githubAPIClient: githubAPIClient,
+                logger: logger,
+                now: getDateNow
+            )
+        }
+
+        let releaseMetadataActor = ReleaseMetadataActor { owner, repo, version in
+            try await Self.syncReleaseMetadata(
+                owner: owner,
+                repo: repo,
+                version: version,
+                persistenceClient: persistenceClient,
+                checksumClient: checksumClient,
+                logger: logger,
+                tagsActor: tagsActor
+            )
+        }
+
+        let manifestsActor = ManifestsActor { owner, repo, version in
+            try await Self.syncManifests(
+                owner: owner,
+                repo: repo,
+                version: version,
+                persistenceClient: persistenceClient,
+                githubAPIClient: githubAPIClient,
+                tagsActor: tagsActor,
+                logger: logger
+            )
+        }
+
+        self.tagsActor = tagsActor
+        self.releaseMetadataActor = releaseMetadataActor
+        self.manifestsActor = manifestsActor
+    }
 
     func boot(routes: any RoutesBuilder) throws {
         let scopeName = routes.grouped(":scope", ":name")

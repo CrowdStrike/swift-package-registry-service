@@ -7,7 +7,15 @@ import Vapor
 extension PackageRegistryController {
     private static let minimumSyncInterval: TimeInterval = 60 * 5 // 5 minutes
 
-    func syncTags(owner: String, repo: String, forceSync: Bool) async throws -> PersistenceClient.TagFile {
+    static func syncTags(
+        owner: String,
+        repo: String,
+        forceSync: Bool,
+        persistenceClient: PersistenceClient,
+        githubAPIClient: GithubAPIClient,
+        logger: Logger,
+        now: () -> Date
+    ) async throws -> PersistenceClient.TagFile {
         // Attempt to read the cached tags (this may fail if we have never fetched before).
         var tagFile = PersistenceClient.TagFile()
         let readFile: Bool
@@ -26,7 +34,7 @@ extension PackageRegistryController {
         }
 
         // Check if we should sync or just return
-        let minimumSyncDurationExceeded = Date.now.timeIntervalSince(tagFile.lastUpdatedAt) > Self.minimumSyncInterval
+        let minimumSyncDurationExceeded = now().timeIntervalSince(tagFile.lastUpdatedAt) > Self.minimumSyncInterval
         let shouldSync = forceSync || minimumSyncDurationExceeded || !readFile || tagFile.tags.isEmpty
         guard shouldSync else {
             logger.debug("Tag sync will not be performed for \(owner).\(repo). Returning \(tagFile.tags.count) cached tags.")
