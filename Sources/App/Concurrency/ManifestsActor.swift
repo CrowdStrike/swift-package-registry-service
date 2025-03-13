@@ -11,7 +11,7 @@ import Vapor
 /// `GET /:owner/:repo/:version/Package.swift` with same `owner`, `repo`, and `version` for both requests,
 /// then the second one must will wait on the first one to complete before it completes.
 actor ManifestsActor {
-    typealias ManifestsLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> [PersistenceClient.Manifest]
+    typealias ManifestsLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version, _ logger: Logger) async throws -> [PersistenceClient.Manifest]
 
     private var memoryCache: [String: ManifestsState] = [:]
     private let manifestsLoader: ManifestsLoader
@@ -34,7 +34,7 @@ actor ManifestsActor {
         }
 
         let task = Task {
-            try await manifestsLoader(owner, repo, version)
+            try await manifestsLoader(owner, repo, version, logger)
         }
 
         memoryCache[cacheKey] = .loading(task)

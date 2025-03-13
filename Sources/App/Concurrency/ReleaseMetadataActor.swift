@@ -11,7 +11,7 @@ import Vapor
 /// `GET /:owner/:repo/:version` with same `owner`, `repo`, and `version` for both requests, then the second one must
 /// will wait on the first one to complete before it completes.
 actor ReleaseMetadataActor {
-    typealias ReleaseMetadataLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> PersistenceClient.ReleaseMetadata
+    typealias ReleaseMetadataLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version, _ logger: Logger) async throws -> PersistenceClient.ReleaseMetadata
 
     private var memoryCache: [String: ReleaseMetadataState] = [:]
     private let releaseMetadataLoader: ReleaseMetadataLoader
@@ -34,7 +34,7 @@ actor ReleaseMetadataActor {
         }
 
         let task = Task {
-            try await releaseMetadataLoader(owner, repo, version)
+            try await releaseMetadataLoader(owner, repo, version, logger)
         }
 
         memoryCache[cacheKey] = .loading(task)

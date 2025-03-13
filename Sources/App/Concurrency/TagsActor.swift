@@ -11,7 +11,7 @@ import Vapor
 /// `GET /:owner/:repo` with same `owner` and `repo` for both requests, then the second one must
 /// will wait on the first one to complete before it completes.
 actor TagsActor {
-    typealias TagFileLoader = @Sendable (_ owner: String, _ repo: String, _ forceSync: Bool) async throws -> PersistenceClient.TagFile
+    typealias TagFileLoader = @Sendable (_ owner: String, _ repo: String, _ forceSync: Bool, _ logger: Logger) async throws -> PersistenceClient.TagFile
     typealias GetDateNow = () -> Date
 
     private var memoryCache: [String: TagFileState] = [:]
@@ -48,7 +48,7 @@ actor TagsActor {
         }
 
         let task = Task {
-            try await tagFileLoader(owner, repo, forceSync)
+            try await tagFileLoader(owner, repo, forceSync, logger)
         }
 
         memoryCache[cacheKey] = .loading(task)

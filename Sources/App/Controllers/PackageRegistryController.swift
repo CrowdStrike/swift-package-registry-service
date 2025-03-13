@@ -43,31 +43,31 @@ struct PackageRegistryController: RouteCollection {
         self.logger = logger
         self.getDateNow = getDateNow
 
-        let tagsActor = TagsActor { owner, repo, forceSync in
+        let tagsActor = TagsActor { owner, repo, forceSync, reqLogger in
             try await Self.syncTags(
                 owner: owner,
                 repo: repo,
                 forceSync: forceSync,
                 persistenceClient: persistenceClient,
                 githubAPIClient: githubAPIClient,
-                logger: logger,
+                logger: reqLogger,
                 now: getDateNow
             )
         }
 
-        let releaseMetadataActor = ReleaseMetadataActor { owner, repo, version in
+        let releaseMetadataActor = ReleaseMetadataActor { owner, repo, version, reqLogger in
             try await Self.syncReleaseMetadata(
                 owner: owner,
                 repo: repo,
                 version: version,
                 persistenceClient: persistenceClient,
                 checksumClient: checksumClient,
-                logger: logger,
+                logger: reqLogger,
                 tagsActor: tagsActor
             )
         }
 
-        let manifestsActor = ManifestsActor { owner, repo, version in
+        let manifestsActor = ManifestsActor { owner, repo, version, reqLogger in
             try await Self.syncManifests(
                 owner: owner,
                 repo: repo,
@@ -75,7 +75,7 @@ struct PackageRegistryController: RouteCollection {
                 persistenceClient: persistenceClient,
                 githubAPIClient: githubAPIClient,
                 tagsActor: tagsActor,
-                logger: logger
+                logger: reqLogger
             )
         }
 
