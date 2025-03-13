@@ -245,6 +245,11 @@ the `-defaultPackageRegistryURL` option:
 xcodebuild -defaultPackageRegistryURL "http://127.0.0.1:8080/"
 ```
 
+## Support Statement
+
+`swift-package-registry-service` is an open source project, not a CrowdStrike product. As such, it carries no
+formal support, expressed or implied.
+
 ## Specification Support
 
 The following table shows the current state of the implementation, according to the
