@@ -1,3 +1,6 @@
+![CrowdStrike Swift Package Registry Service](https://raw.githubusercontent.com/CrowdStrike/swift-package-registry-service/main/docs/assets/cs-logo.png#gh-light-mode-only)
+![CrowdStrike Swift Package Registry Service](https://raw.githubusercontent.com/CrowdStrike/swift-package-registry-service/main/docs/assets/cs-logo-red.png#gh-dark-mode-only)
+
 # Swift Package Registry Service 
 
 This is an implementation of the Swift Package Registry Service which proxies the Github API.
