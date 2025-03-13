@@ -1,5 +1,5 @@
-![CrowdStrike Swift Package Registry Service](https://raw.githubusercontent.com/CrowdStrike/swift-package-registry-service/main/docs/assets/cs-logo.png#gh-light-mode-only)
-![CrowdStrike Swift Package Registry Service](https://raw.githubusercontent.com/CrowdStrike/swift-package-registry-service/main/docs/assets/cs-logo-red.png#gh-dark-mode-only)
+![CrowdStrike Swift Package Registry Service](https://github.com/CrowdStrike/swift-package-registry-service/blob/main/docs/assets/cs-logo.png?raw=true#gh-light-mode-only)
+![CrowdStrike Swift Package Registry Service](https://github.com/CrowdStrike/swift-package-registry-service/blob/main/docs/assets/cs-logo-red.png?raw=true#gh-dark-mode-only)
 
 # Swift Package Registry Service 
 
