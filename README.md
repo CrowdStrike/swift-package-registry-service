@@ -62,6 +62,39 @@ Build of product 'App' complete! (25.07s)
 [ NOTICE ] Server started on http://127.0.0.1:8080
 ```
 
+## Changing the logging level
+
+The Vapor log levels are:
+
+* **Trace**: Messages that contain information normally of use only when tracing the execution of a program.
+* **Debug**: Messages that contain information normally of use only when debugging a program.
+* **Info**: Informational messages.
+* **Notice**: Conditions that are not error conditions, but that may require special handling.
+* **Warning**: Messages that are not error conditions, but more severe than Notice.
+* **Error**: Error conditions.
+* **Critical**: Critical error conditions that usually require immediate attention.
+
+The default Vapor logging level is Info. If you want to change the logging level, see the
+instructions below.
+
+### Using Xcode
+
+1. Click the `swift-package-registry-service` scheme.
+2. Click Edit Scheme.
+3. Click the Run action in the left pane.
+4. Click the Arguments tab in the top middle.
+5. Add a `--log <log-level>` argument, where `<log-level>` is `trace`, `debug`, `info`, `notice`,
+   `warning`, `error`, or `critical`.
+
+### Using swift command line
+
+Add a `--log <log-level>` to your `swift run` command, where `<log-level>` is `trace`,
+`debug`, `info`, `notice`, `warning`, `error`, or `critical`. For example, to set `debug`-level logging:
+
+```
+swift run --log debug
+```
+
 ## Configuring Swift Package Manager to use the package registry
 
 You will also need to configure Swift Package Manager to be aware of the package registry server:
