@@ -60,6 +60,7 @@ struct PackageRegistryController: RouteCollection {
                 owner: owner,
                 repo: repo,
                 version: version,
+                githubAPIClient: githubAPIClient,
                 persistenceClient: persistenceClient,
                 checksumClient: checksumClient,
                 logger: reqLogger,

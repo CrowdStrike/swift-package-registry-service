@@ -10,6 +10,7 @@ extension PackageRegistryController {
         owner: String,
         repo: String,
         version: Version,
+        githubAPIClient: GithubAPIClient,
         persistenceClient: PersistenceClient,
         checksumClient: ChecksumClient,
         logger: Logger,
@@ -37,7 +38,15 @@ extension PackageRegistryController {
             throw Abort(.internalServerError, title: "Could not find tag with semantic version \"\(version)\".")
         }
 
-        // TODO: call Fetch Release By Tag Name from Github API to obtain publishedAt date.
+        // The Github /repos/{owner}/{repo}/tags endpoint provides tags information,
+        // but the tag information does not contain createdAt or publishedAt information.
+        // However, for *most* repositories, there is also a "release" associated with
+        // this tag, and release information *does* contain createdAt and publishedAt.
+        // So here we attempt to fetch the release by the tag name. If we find it,
+        // then pull out the publishedAt date to provide in the release metadata.
+        // However, it is not an error if the "fetch release by tag name" fails - this
+        // may be a tag with no corresponding release.
+        let publishedAt = try await githubAPIClient.getReleaseByTagName(.init(owner: owner, repo: repo, tag: tagName)).publishedAt
 
         // Cache the zipBall
         let zipBallPath = try await persistenceClient.saveZipBall(owner: owner, repo: repo, version: version, zipBallURL: tag.zipBallURL)
@@ -48,7 +57,7 @@ extension PackageRegistryController {
         logger.debug("Computed checksum of \"\(zipBallPath)\" as \(checksum)")
 
         // Construct the ReleaseMetadata
-        let releaseMetadata = PersistenceClient.ReleaseMetadata(checksum: checksum, tag: tag, version: version)
+        let releaseMetadata = PersistenceClient.ReleaseMetadata(checksum: checksum, tag: tag, version: version, publishedAt: publishedAt)
 
         // Cache the ReleaseMetadata
         try await persistenceClient.saveReleaseMetadata(owner: owner, repo: repo, metadata: releaseMetadata)
@@ -70,6 +79,18 @@ extension GithubAPIClient.GetReleaseByTagName.Output {
             case .other(let httpResponse):
                 throw Abort(.init(statusCode: httpResponse.status.code))
             }
+        }
+    }
+
+    /// Get the `publishedAt` Date.
+    /// This accessor does not throw an error if we get a Not Found or other HTTP error.
+    /// Instead, it just returns a `nil`.
+    var publishedAt: Date? {
+        switch self {
+        case .ok(let release):
+            return release.publishedAt
+        default:
+            return nil
         }
     }
 }

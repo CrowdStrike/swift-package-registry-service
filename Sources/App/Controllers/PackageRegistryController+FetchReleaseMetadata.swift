@@ -27,7 +27,8 @@ extension PackageRegistryController {
             resources: [
                 .sourceArchive(withChecksum: releaseMetadata.checksum)
             ],
-            metadata: .metadata(scope: owner, name: repo)
+            metadata: .metadata(scope: owner, name: repo),
+            publishedAt: releaseMetadata.publishedAt
         )
     }
 }
