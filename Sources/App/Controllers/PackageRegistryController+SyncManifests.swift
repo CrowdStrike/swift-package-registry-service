@@ -27,7 +27,7 @@ extension PackageRegistryController {
         // almost always comes after the listPackageReleases call in SPM, then
         // we assume that we already did a tag sync when the listPackageReleases
         // was called. So we don't force a sync now.
-        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: false)
+        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: false, logger: logger)
 
         // Look up the tag name for the requested semantic version
         guard let tagName = tagFile.versionToTagName[version] else {

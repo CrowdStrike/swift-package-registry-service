@@ -1,5 +1,6 @@
 import APIUtilities
 import PersistenceClient
+import Vapor
 
 /// This actor accomplishes two purposes:
 /// - Holds a memory cache of `PersistenceClient.ReleaseMetadata`, keyed by `owner`, `repo`, and `version`
@@ -19,13 +20,15 @@ actor ReleaseMetadataActor {
         self.releaseMetadataLoader = releaseMetadataLoader
     }
 
-    func loadReleaseMetadata(owner: String, repo: String, version: Version) async throws -> PersistenceClient.ReleaseMetadata {
+    func loadReleaseMetadata(owner: String, repo: String, version: Version, logger: Logger) async throws -> PersistenceClient.ReleaseMetadata {
         let cacheKey = Self.makeCacheKey(owner, repo, version)
         if let state = memoryCache[cacheKey] {
             switch state {
             case .loaded(let releaseMetadata):
+                logger.debug("Loaded ReleaseMetadata from memory cache for \(cacheKey)")
                 return releaseMetadata
             case .loading(let task):
+                logger.debug("ReleaseMetadata memory cache is loading for \(cacheKey). Awaiting loading task.")
                 return try await task.value
             }
         }
@@ -39,9 +42,11 @@ actor ReleaseMetadataActor {
         do {
             let releaseMetadata = try await task.value
             memoryCache[cacheKey] = .loaded(releaseMetadata)
+            logger.debug("Loaded ReleaseMetadata from releaseMetadataLoader for \(cacheKey)")
             return releaseMetadata
         } catch {
             memoryCache[cacheKey] = nil
+            logger.error("releaseMetadataLoader threw an error for \(cacheKey): \(error)")
             throw error
         }
     }

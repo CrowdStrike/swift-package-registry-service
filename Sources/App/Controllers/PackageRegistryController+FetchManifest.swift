@@ -20,7 +20,7 @@ extension PackageRegistryController {
         let repo = packageName.value
 
         // Sync the package manifests against the cache
-        let manifests = try await manifestsActor.loadManifests(owner: owner, repo: repo, version: version)
+        let manifests = try await manifestsActor.loadManifests(owner: owner, repo: repo, version: version, logger: req.logger)
 
         if let swiftVersion = queryParams.swiftVersion {
             // We have a swift-version query parameter. Check if we have a manifest with this version

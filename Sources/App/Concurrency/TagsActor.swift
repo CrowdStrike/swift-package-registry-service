@@ -1,5 +1,6 @@
 import Foundation
 import PersistenceClient
+import Vapor
 
 /// This actor accomplishes two purposes:
 /// - Holds a memory cache of `PersistenceClient.TagFile`, keyed by package id
@@ -29,15 +30,19 @@ actor TagsActor {
         self.tagFileLoader = tagFileLoader
     }
 
-    func loadTagFile(owner: String, repo: String, forceSync: Bool) async throws -> PersistenceClient.TagFile {
+    func loadTagFile(owner: String, repo: String, forceSync: Bool, logger: Logger) async throws -> PersistenceClient.TagFile {
         let cacheKey = Self.makeCacheKey(owner, repo)
         if let state = memoryCache[cacheKey] {
             switch state {
             case let .loaded(tagFile, cachedDate):
                 if getDateNow().timeIntervalSince(cachedDate) < memoryCacheExpiration {
+                    logger.debug("Loaded \(tagFile.tags.count) tags from memory cache for \(cacheKey)")
                     return tagFile
+                } else {
+                    logger.debug("TagFile expired in memory cache for \(cacheKey)")
                 }
             case .loading(let task):
+                logger.debug("TagFile memory cache is loading for \(cacheKey). Awaiting loading task.")
                 return try await task.value
             }
         }
@@ -51,9 +56,11 @@ actor TagsActor {
         do {
             let tagFile = try await task.value
             memoryCache[cacheKey] = .loaded(tagFile, getDateNow())
+            logger.debug("Loaded \(tagFile.tags.count) tags from tagFileLoader for \(cacheKey)")
             return tagFile
         } catch {
             memoryCache[cacheKey] = nil
+            logger.error("tagFileLoader threw an error for \(cacheKey): \(error)")
             throw error
         }
     }

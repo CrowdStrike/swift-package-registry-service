@@ -21,7 +21,7 @@ extension PackageRegistryController {
 
         // Get the cached tag information.
         // TODO: Look for lighter-weight solution instead of full tag sync.
-        let tagFile = try await tagsActor.loadTagFile(owner: githubURL.scope, repo: githubURL.name, forceSync: false)
+        let tagFile = try await tagsActor.loadTagFile(owner: githubURL.scope, repo: githubURL.name, forceSync: false, logger: req.logger)
 
         guard !tagFile.tags.isEmpty else {
             // We do not have any tag for this repo.

@@ -18,7 +18,7 @@ extension PackageRegistryController {
         let repo = packageScopeAndName.name.value
 
         // Sync the release metadata
-        let releaseMetadata = try await releaseMetadataActor.loadReleaseMetadata(owner: owner, repo: repo, version: version)
+        let releaseMetadata = try await releaseMetadataActor.loadReleaseMetadata(owner: owner, repo: repo, version: version, logger: req.logger)
 
         // Return the FetchReleaseMetadata
         return .init(

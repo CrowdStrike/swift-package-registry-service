@@ -1,5 +1,6 @@
 import APIUtilities
 import PersistenceClient
+import Vapor
 
 /// This actor accomplishes two purposes:
 /// - Holds a memory cache of `[PersistenceClient.Manifest]`, keyed by `owner`, `repo`, and `version`
@@ -19,13 +20,15 @@ actor ManifestsActor {
         self.manifestsLoader = manifestsLoader
     }
 
-    func loadManifests(owner: String, repo: String, version: Version) async throws -> [PersistenceClient.Manifest] {
+    func loadManifests(owner: String, repo: String, version: Version, logger: Logger) async throws -> [PersistenceClient.Manifest] {
         let cacheKey = Self.makeCacheKey(owner, repo, version)
         if let state = memoryCache[cacheKey] {
             switch state {
             case .loaded(let manifests):
+                logger.debug("Loaded \(manifests.count) manifests from memory cache for \(cacheKey)")
                 return manifests
             case .loading(let task):
+                logger.debug("Manifests memory cache is loading for \(cacheKey). Awaiting loading task.")
                 return try await task.value
             }
         }
@@ -39,9 +42,11 @@ actor ManifestsActor {
         do {
             let manifests = try await task.value
             memoryCache[cacheKey] = .loaded(manifests)
+            logger.debug("Loaded \(manifests.count) manifests from manifestsLoader for \(cacheKey)")
             return manifests
         } catch {
             memoryCache[cacheKey] = nil
+            logger.error("manifestsLoader threw an error for \(cacheKey): \(error)")
             throw error
         }
     }
