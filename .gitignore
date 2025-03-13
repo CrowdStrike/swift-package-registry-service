@@ -69,3 +69,8 @@ fastlane/test_output
 # VSCode
 
 .vscode
+
+# This is the default cache directory
+
+.sprsCache
+
