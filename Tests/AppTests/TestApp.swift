@@ -24,6 +24,7 @@ func testApp(
             checksumClient: checksumClient,
             httpStreamClient: httpStreamClient,
             persistenceClient: persistenceClient,
+            logger: app.logger,
             githubAPIToken: githubAPIToken,
             clientSupportsPagination: clientSupportsPagination
         )
