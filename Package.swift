@@ -7,13 +7,13 @@ let package = Package(
        .macOS(.v13)
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.112.0"),
-        .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.7.0"),
-        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.8.0"),
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.113.2"),
+        .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.7.1"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.8.1"),
         .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.2"),
-        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.6.4"),
+        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.8.1"),
         .package(url: "https://github.com/apple/swift-http-types", from: "1.3.1"),
-        .package(url: "https://github.com/swift-server/async-http-client", from: "1.24.2"),
+        .package(url: "https://github.com/swift-server/async-http-client", from: "1.25.2"),
         .package(url: "https://github.com/pointfreeco/swift-overture.git", from: "0.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-concurrency-extras.git", from: "1.3.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.81.0"),

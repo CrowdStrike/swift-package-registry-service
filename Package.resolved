@@ -1,13 +1,13 @@
 {
-  "originHash" : "dd5fbfece0b6c0fe4dbd9bc9ecbe3b722b9d81bf60762056c6d18ab49ef24dcd",
+  "originHash" : "6acc628ea1e17595f14832960c8b4ef2fce2f2230c5f3da0865d9e04e03b3087",
   "pins" : [
     {
       "identity" : "async-http-client",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swift-server/async-http-client.git",
       "state" : {
-        "revision" : "60fa3dcfc52d09ed0411e9c4bc99928bf63656bd",
-        "version" : "1.24.2"
+        "revision" : "333f51104b75d1a5b94cb3b99e4c58a3b442c9f7",
+        "version" : "1.25.2"
       }
     },
     {
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "revision" : "565a7be4c1c9a5e0bf77e5dc21f30f054ced9d06",
-        "version" : "1.6.4"
+        "revision" : "ec2862d1364536fc22ec56a3094e7a034bbc7da8",
+        "version" : "1.8.1"
       }
     },
     {
@@ -240,8 +240,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-openapi-generator.git",
       "state" : {
-        "revision" : "84b693f9d0559dc488e691edb4837bafbce2aaea",
-        "version" : "1.7.0"
+        "revision" : "755c0ec69bd667aa4e8ba50c8b710585d302879e",
+        "version" : "1.7.1"
       }
     },
     {
@@ -249,8 +249,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-openapi-runtime",
       "state" : {
-        "revision" : "23146bc8710ac5e57abb693113f02dc274cf39b6",
-        "version" : "1.8.0"
+        "revision" : "81c309c7b43cd56b2d2b90ca0170f17ff3d0c433",
+        "version" : "1.8.1"
       }
     },
     {
@@ -303,8 +303,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/vapor.git",
       "state" : {
-        "revision" : "8589cb562feab069f2563bdcdeb8f9608a07a2c7",
-        "version" : "4.112.0"
+        "revision" : "a425e32f9b9d19c0ecab952cb4484c1c15e2536f",
+        "version" : "4.113.2"
       }
     },
     {
