@@ -47,7 +47,6 @@ We have multiple avenues to receive security-related vulnerability reports.
 
 Please report suspected security vulnerabilities by:
 + Submitting a [bug](https://github.com/CrowdStrike/swift-package-registry-service/issues/new).
-+ Starting a new [discussion](https://github.com/CrowdStrike/swift-package-registry-service/discussions).
 + Submitting a [pull request](https://github.com/CrowdStrike/swift-package-registry-service/pulls) to potentially resolve the issue.
 + Sending an email to __oss-security@crowdstrike.com__.
 
