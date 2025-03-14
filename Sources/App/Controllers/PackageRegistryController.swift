@@ -19,8 +19,8 @@ struct PackageRegistryController: RouteCollection {
     let logger: Logger
     let getDateNow: GetDateNow
     let tagsActor: TagsActor
-    let releaseMetadataActor: ReleaseMetadataActor
-    let manifestsActor: ManifestsActor
+    let releaseMetadataActor: MemoryCacheActor<PersistenceClient.ReleaseMetadata>
+    let manifestsActor: MemoryCacheActor<[PersistenceClient.Manifest]>
 
     init(
         serverURLString: String,
@@ -55,7 +55,7 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let releaseMetadataActor = ReleaseMetadataActor { owner, repo, version, reqLogger in
+        let releaseMetadataActor = MemoryCacheActor { owner, repo, version, reqLogger in
             try await Self.syncReleaseMetadata(
                 owner: owner,
                 repo: repo,
@@ -68,7 +68,7 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let manifestsActor = ManifestsActor { owner, repo, version, reqLogger in
+        let manifestsActor = MemoryCacheActor { owner, repo, version, reqLogger in
             try await Self.syncManifests(
                 owner: owner,
                 repo: repo,
