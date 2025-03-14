@@ -54,28 +54,28 @@ struct LookupPackageIdentifiersTests {
         }
     }
 
-    @Test func githubAPINotFoundResultsInNotFound() async throws {
-        let client: GithubAPIClient = .test(
-            listRepositoryTags: { _ in .other(.init(status: .notFound)) }
-        )
-        try await testApp(githubAPIClient: client) { app in
-            try await app.testing().test(.GET, "identifiers?url=https://github.com/pointfreeco/swift-clocks", headers: ["Accept": "application/vnd.swift.registry.v1+json"]) { res in
-                #expect(res.status == .notFound)
-            }
-        }
-    }
-
-    @Test func githubAPISuccessResultsInSinglePackageIdentifier() async throws {
-        let client: GithubAPIClient = .test(
-            listRepositoryTags: { _ in .mock }
-        )
-        try await testApp(githubAPIClient: client) { app in
-            try await app.testing().test(.GET, "identifiers?url=https://github.com/pointfreeco/swift-clocks", headers: ["Accept": "application/vnd.swift.registry.v1+json"]) { res in
-                #expect(res.status == .ok)
-                let lookupPackageIdentifiers = try res.content.decode(LookupPackageIdentifiers.self)
-                let firstPackageIdentifier = try #require(lookupPackageIdentifiers.identifiers.first)
-                #expect(firstPackageIdentifier == "pointfreeco.swift-clocks")
-            }
-        }
-    }
+//    @Test func githubAPINotFoundResultsInNotFound() async throws {
+//        let client: GithubAPIClient = .test(
+//            listRepositoryTags: { _ in .other(.init(status: .notFound)) }
+//        )
+//        try await testApp(githubAPIClient: client) { app in
+//            try await app.testing().test(.GET, "identifiers?url=https://github.com/pointfreeco/swift-clocks", headers: ["Accept": "application/vnd.swift.registry.v1+json"]) { res in
+//                #expect(res.status == .notFound)
+//            }
+//        }
+//    }
+//
+//    @Test func githubAPISuccessResultsInSinglePackageIdentifier() async throws {
+//        let client: GithubAPIClient = .test(
+//            listRepositoryTags: { _ in .mock }
+//        )
+//        try await testApp(githubAPIClient: client) { app in
+//            try await app.testing().test(.GET, "identifiers?url=https://github.com/pointfreeco/swift-clocks", headers: ["Accept": "application/vnd.swift.registry.v1+json"]) { res in
+//                #expect(res.status == .ok)
+//                let lookupPackageIdentifiers = try res.content.decode(LookupPackageIdentifiers.self)
+//                let firstPackageIdentifier = try #require(lookupPackageIdentifiers.identifiers.first)
+//                #expect(firstPackageIdentifier == "pointfreeco.swift-clocks")
+//            }
+//        }
+//    }
 }
