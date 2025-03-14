@@ -19,6 +19,9 @@ jobs:
     - uses: swift-actions/setup-swift@v2
       with:
         swift-version: '6.0'
+    - name: Get swift version
+      run: |
+        swift --version
     - name: Trust macros and plugins
       run: |
         defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
