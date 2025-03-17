@@ -16,7 +16,7 @@ struct PackageRegistryController: RouteCollection {
     let checksumClient: ChecksumClient
     let httpStreamClient: HTTPStreamClient
     let persistenceClient: PersistenceClient
-    let logger: Logger
+    let appLogger: Logger
     let getDateNow: GetDateNow
     let tagsActor: TagsActor
     let releaseMetadataActor: MemoryCacheActor<PersistenceClient.ReleaseMetadata>
@@ -31,7 +31,7 @@ struct PackageRegistryController: RouteCollection {
         checksumClient: ChecksumClient,
         httpStreamClient: HTTPStreamClient,
         persistenceClient: PersistenceClient,
-        logger: Logger,
+        appLogger: Logger,
         getDateNow: @escaping GetDateNow = { Date.now }
     ) {
         self.serverURLString = serverURLString
@@ -41,7 +41,7 @@ struct PackageRegistryController: RouteCollection {
         self.checksumClient = checksumClient
         self.httpStreamClient = httpStreamClient
         self.persistenceClient = persistenceClient
-        self.logger = logger
+        self.appLogger = appLogger
         self.getDateNow = getDateNow
 
         let tagsActor = TagsActor { owner, repo, forceSync, reqLogger in

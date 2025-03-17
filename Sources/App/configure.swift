@@ -34,7 +34,7 @@ public func configure(
         checksumClient: checksumClient,
         httpStreamClient: httpStreamClient,
         persistenceClient: persistenceClient,
-        logger: logger
+        appLogger: logger
     )
 
     try app.register(collection: controller)
