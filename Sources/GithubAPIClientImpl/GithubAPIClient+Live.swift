@@ -36,6 +36,9 @@ extension GithubAPIClient {
             },
             getContent: {
                 try await client.reposGetContent($0.asInput).asOutput
+            },
+            getRepository: {
+                try await client.reposGet($0.asInput).asOutput
             }
         )
     }

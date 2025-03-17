@@ -7,7 +7,8 @@ extension GithubAPIClient {
         listRepositoryTags: (@Sendable (ListRepositoryTags.Input) async throws -> ListRepositoryTags.Output)? = nil,
         getLatestRelease: (@Sendable (GetLatestRelease.Input) async throws -> GetLatestRelease.Output)? = nil,
         getReleaseByTagName: (@Sendable (GetReleaseByTagName.Input) async throws -> GetReleaseByTagName.Output)? = nil,
-        getContent: (@Sendable (GetContent.Input) async throws -> GetContent.Output)? = nil
+        getContent: (@Sendable (GetContent.Input) async throws -> GetContent.Output)? = nil,
+        getRepository: (@Sendable (GetRepository.Input) async throws -> GetRepository.Output)? = nil
     ) -> Self {
         update(.mock) {
             if let listRepositoryTags {
@@ -22,13 +23,17 @@ extension GithubAPIClient {
             if let getContent {
                 $0.getContent = getContent
             }
+            if let getRepository {
+                $0.getRepository = getRepository
+            }
         }
     }
 
     public static func testOutput(
         listRepositoryTagsOutput: ListRepositoryTags.Output? = nil,
         getReleaseByTagNameOutput: GetReleaseByTagName.Output? = nil,
-        getContentOutput: GetContent.Output? = nil
+        getContentOutput: GetContent.Output? = nil,
+        getRepositoryOutput: GetRepository.Output? = nil
     ) -> Self {
         update(.mock) {
             if let listRepositoryTagsOutput {
@@ -39,6 +44,9 @@ extension GithubAPIClient {
             }
             if let getContentOutput {
                 $0.getContent = { _ in getContentOutput }
+            }
+            if let getRepositoryOutput {
+                $0.getRepository = { _ in getRepositoryOutput }
             }
         }
     }

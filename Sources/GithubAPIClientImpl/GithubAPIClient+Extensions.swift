@@ -52,3 +52,12 @@ extension GithubAPIClient.GetContent.Input.PathType {
         }
     }
 }
+
+extension GithubAPIClient.GetRepository.Input {
+    var asInput: Operations.ReposGet.Input {
+        .init(
+            path: .init(owner: owner, repo: repo),
+            headers: .init(accept: [.init(contentType: .json)])
+        )
+    }
+}

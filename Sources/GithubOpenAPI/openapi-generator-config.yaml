@@ -8,4 +8,5 @@ filter:
     - "repos/get-latest-release"
     - "repos/get-release-by-tag"
     - "repos/get-content"
+    - "repos/get"
 namingStrategy: idiomatic

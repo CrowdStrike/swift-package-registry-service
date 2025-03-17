@@ -184,3 +184,37 @@ extension Components.Schemas.ContentSymlink {
         .init(target: target, size: size, name: name, path: path, sha: sha, url: url)
     }
 }
+
+extension Operations.ReposGet.Output {
+
+    var asOutput: GithubAPIClient.GetRepository.Output {
+        switch self {
+        case .ok(let okBody):
+            return .ok(okBody.body.fullRepository.asOKBody)
+        case .movedPermanently:
+            return .movedPermanently
+        case .forbidden:
+            return .forbidden
+        case .notFound:
+            return .notFound
+        case .undocumented(let statusCode, _):
+            return .other(statusCode)
+        }
+    }
+}
+
+extension Operations.ReposGet.Output.Ok.Body {
+
+    var fullRepository: Components.Schemas.FullRepository {
+        switch self {
+        case .json(let fullRepository): return fullRepository
+        }
+    }
+}
+
+extension Components.Schemas.FullRepository {
+
+    var asOKBody: GithubAPIClient.GetRepository.Output.OKBody {
+        .init(id: id, nodeId: nodeId, name: name)
+    }
+}

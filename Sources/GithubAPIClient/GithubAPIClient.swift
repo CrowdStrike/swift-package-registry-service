@@ -35,6 +35,14 @@ public struct GithubAPIClient: Sendable {
         return .mockFile
     }
 
+    /// This is an abstraction of the
+    /// [Get Repository](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository)
+    /// operation in the Github API.
+    public var getRepository: @Sendable (GetRepository.Input) async throws -> GetRepository.Output = { _ in
+        reportIssue("\(Self.self).getRepository not implemented")
+        return .mock
+    }
+
     public enum Error: Swift.Error {
         case missingSourceArchiveURL(PackageInfo)
         case unexpectedContentType(String)
