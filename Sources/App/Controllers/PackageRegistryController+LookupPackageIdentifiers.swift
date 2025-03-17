@@ -19,13 +19,12 @@ extension PackageRegistryController {
             throw Abort(.notFound, title: "URL does not appear to be a valid Github URL")
         }
 
-        // Get the cached tag information.
-        // TODO: Look for lighter-weight solution instead of full tag sync.
-        let tagFile = try await tagsActor.loadTagFile(owner: githubURL.scope, repo: githubURL.name, forceSync: false, logger: req.logger)
+        // Get the cached repository flag information
+        let isRepository = try await identifiersActor.isRepository(owner: githubURL.scope, repo: githubURL.name, logger: req.logger)
 
-        guard !tagFile.tags.isEmpty else {
-            // We do not have any tag for this repo.
-            throw Abort(.notFound, title: "URL cannot be resolved with Github.")
+        guard isRepository else {
+            // The Github API said it did not find a repository with this owner and repo.
+            throw Abort(.notFound, title: "No such repository found.")
         }
 
         return .init(
@@ -37,15 +36,5 @@ extension PackageRegistryController {
 
     private struct LookupPackageIdentifiersQueryParameters: Content {
         var url: String?
-    }
-}
-
-extension GithubAPIClient.ListRepositoryTags.Output {
-
-    var isOK: Bool {
-        switch self {
-        case .ok: true
-        default: false
-        }
     }
 }

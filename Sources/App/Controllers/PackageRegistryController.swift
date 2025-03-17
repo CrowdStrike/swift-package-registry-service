@@ -21,6 +21,7 @@ struct PackageRegistryController: RouteCollection {
     let tagsActor: TagsActor
     let releaseMetadataActor: MemoryCacheActor<PersistenceClient.ReleaseMetadata>
     let manifestsActor: MemoryCacheActor<[PersistenceClient.Manifest]>
+    let identifiersActor: IdentifiersActor
 
     init(
         serverURLString: String,
@@ -80,9 +81,19 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
+        let identifiersActor = IdentifiersActor { owner, repo, reqLogger in
+            try await Self.fetchIsRepository(
+                owner: owner,
+                repo: repo,
+                githubAPIClient: githubAPIClient,
+                logger: reqLogger
+            )
+        }
+
         self.tagsActor = tagsActor
         self.releaseMetadataActor = releaseMetadataActor
         self.manifestsActor = manifestsActor
+        self.identifiersActor = identifiersActor
     }
 
     func boot(routes: any RoutesBuilder) throws {
