@@ -173,6 +173,26 @@ extension PersistenceClient {
                 )
                 let byteBuffer = try encoder.encodeAsByteBuffer(directory, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: byteBuffer, path: manifestDirectoryFileName)
+            },
+            readRepositories: {
+                let repositoriesFileName = Self.repositoriesFileName(cacheRootDirectory: cacheRootDirectory)
+                let byteBuffer: ByteBuffer
+                do {
+                    byteBuffer = try await fileClient.readFile(path: repositoriesFileName)
+                } catch {
+                    return RepositoriesFile()
+                }
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                return try decoder.decode(RepositoriesFile.self, from: byteBuffer)
+            },
+            saveRepositories: { repositoriesFile in
+                let repositoriesFileName = Self.repositoriesFileName(cacheRootDirectory: cacheRootDirectory)
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                encoder.outputFormatting = .default
+                let byteBuffer = try encoder.encodeAsByteBuffer(repositoriesFile, allocator: byteBufferAllocator)
+                try await fileClient.writeFile(buffer: byteBuffer, path: repositoriesFileName)
             }
         )
     }
@@ -200,6 +220,11 @@ extension PersistenceClient {
     private static func manifestDirectoryFileName(cacheRootDirectory: String, owner: String, repo: String, version: Version) -> String {
         let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
         return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/\(version)/manifests.json"
+    }
+
+    private static func repositoriesFileName(cacheRootDirectory: String) -> String {
+        let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
+        return "\(cacheRootDirectoryWithSlash)repositories.json"
     }
 
     private static func manifestFileName(

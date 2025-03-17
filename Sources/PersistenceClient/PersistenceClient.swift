@@ -51,6 +51,15 @@ public struct PersistenceClient: Sendable {
     public var saveManifests: @Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> Void = { _, _, _, _ in
         reportIssue("\(Self.self).saveManifests not implemented")
     }
+    /// Read the repositories information
+    public var readRepositories: @Sendable () async throws -> RepositoriesFile = {
+        reportIssue("\(Self.self).readRepositories not implemented")
+        return .mock
+    }
+    /// Save the repositories information
+    public var saveRepositories: @Sendable (_ repositoriesFile: RepositoriesFile) async throws -> Void = { _ in
+        reportIssue("\(Self.self).saveRepositories not implemented")
+    }
 }
 
 public enum PersistenceClientError: Swift.Error {
