@@ -81,10 +81,9 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let identifiersActor = IdentifiersActor { owner, repo, reqLogger in
-            try await Self.fetchIsRepository(
-                owner: owner,
-                repo: repo,
+        let identifiersActor = IdentifiersActor { url, reqLogger in
+            try await Self.fetchPackageID(
+                url: url,
                 githubAPIClient: githubAPIClient,
                 logger: reqLogger
             )

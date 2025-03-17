@@ -215,6 +215,14 @@ extension Operations.ReposGet.Output.Ok.Body {
 extension Components.Schemas.FullRepository {
 
     var asOKBody: GithubAPIClient.GetRepository.Output.OKBody {
-        .init(id: id, nodeId: nodeId, name: name)
+        .init(
+            id: id,
+            nodeId: nodeId,
+            owner: owner?.login,
+            name: name,
+            htmlURL: htmlUrl,
+            cloneURL: cloneUrl,
+            sshURL: sshUrl
+        )
     }
 }

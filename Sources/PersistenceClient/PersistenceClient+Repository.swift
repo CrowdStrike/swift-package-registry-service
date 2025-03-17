@@ -13,7 +13,7 @@ extension PersistenceClient {
 
     public struct Repository: Equatable, Sendable, Codable {
         /// This is the unique repository id from Github
-        public var id: Int
+        public var id: Int64
         /// This is the "organization" or "owner". Example: "pointfreeco"
         public var owner: String
         /// This is the name of the repo. Example: "swift-overture"
@@ -28,7 +28,7 @@ extension PersistenceClient {
         /// Example: https://github.com/pointfreeco/swift-overture
         public var htmlURL: String
 
-        public init(id: Int, owner: String, name: String, cloneURL: String, sshURL: String, htmlURL: String) {
+        public init(id: Int64, owner: String, name: String, cloneURL: String, sshURL: String, htmlURL: String) {
             self.id = id
             self.owner = owner
             self.name = name

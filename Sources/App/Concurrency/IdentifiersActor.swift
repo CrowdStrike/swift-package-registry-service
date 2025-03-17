@@ -1,59 +1,59 @@
 import Foundation
+import PersistenceClient
 import Vapor
 
-/// This actor accomplishes two purposes:
-/// - Holds a memory cache of `Bool`, keyed by package id
-/// - Ensures that for a specific package id, we only execute one `IsRepositoryLoader` at a time.
-///
-/// Since `IsRepositoryLoader` may mutate the disk cache, then this eliminates the race condition where two requests to the same package id
-/// could be attempting to read and write to the disk cache simultaneously.
 actor IdentifiersActor {
-    typealias IsRepositoryLoader = @Sendable (_ owner: String, _ repo: String, _ logger: Logger) async throws -> Bool
+    typealias PackageIDLoader = @Sendable (_ url: String, _ logger: Logger) async throws -> String?
 
-    private var memoryCache: [String: IsRepositoryState] = [:]
-    private let isRepositoryLoader: IsRepositoryLoader
+    private var memoryCache: [String: PackageIDState] = [:]
+    private let packageIDLoader: PackageIDLoader
 
-    init(isRepositoryLoader: @escaping IsRepositoryLoader) {
-        self.isRepositoryLoader = isRepositoryLoader
+    init(packageIDLoader: @escaping PackageIDLoader) {
+        self.packageIDLoader = packageIDLoader
     }
 
-    func isRepository(owner: String, repo: String, logger: Logger) async throws -> Bool {
-        let cacheKey = Self.makeCacheKey(owner, repo)
-        if let state = memoryCache[cacheKey] {
+    func load(from persistenceClient: PersistenceClient) async throws {
+        let repositoriesFile = try await persistenceClient.readRepositories()
+        memoryCache = repositoriesFile.urlToPackageIDMap.mapValues { .loaded($0) }
+    }
+
+    func loadPackageID(url: String, logger: Logger) async throws -> String? {
+        if let state = memoryCache[url] {
             switch state {
-            case .loaded(let isRepository):
-                logger.debug("IsRepository=\(isRepository) found in memory cache for \(cacheKey).")
-                return isRepository
+            case .loaded(let packageID):
+                logger.debug("Loaded packageId \"\(packageID)\" from memory cache for \"\(url)\"")
+                return packageID
             case .loading(let task):
-                logger.debug("IsRepository flag is loading for \(cacheKey). Awaiting loading task.")
+                logger.debug("PackageID memory cache is loading for \"\(url)\". Awaiting loading task.")
                 return try await task.value
             }
         }
 
         let task = Task {
-            try await isRepositoryLoader(owner, repo, logger)
+            try await packageIDLoader(url, logger)
         }
 
-        memoryCache[cacheKey] = .loading(task)
+        memoryCache[url] = .loading(task)
 
         do {
-            let isRepository = try await task.value
-            memoryCache[cacheKey] = .loaded(isRepository)
-            logger.debug("Loaded IsRepository=\(isRepository) from isRepositoryLoader for \(cacheKey)")
-            return isRepository
+            if let packageID = try await task.value {
+                logger.debug("Loaded packageID=\"\(packageID)\" from packageIDLoader for \"\(url)\"")
+                memoryCache[url] = .loaded(packageID)
+                return packageID
+            } else {
+                logger.debug("packageIDLoader returned nil packageID for \"\(url)\"")
+                memoryCache[url] = nil
+                return nil
+            }
         } catch {
-            memoryCache[cacheKey] = nil
-            logger.error("isRepositoryLoader threw an error for \(cacheKey): \(error)")
+            memoryCache[url] = nil
+            logger.error("packageIDLoader threw an error for \"\(url)\": \(error)")
             throw error
         }
     }
 
-    private static func makeCacheKey(_ owner: String, _ repo: String) -> String {
-        "\(owner.lowercased()).\(repo.lowercased())"
-    }
-
-    private enum IsRepositoryState {
-        case loading(Task<Bool, Error>)
-        case loaded(Bool)
+    private enum PackageIDState {
+        case loading(Task<String?, Error>)
+        case loaded(String)
     }
 }

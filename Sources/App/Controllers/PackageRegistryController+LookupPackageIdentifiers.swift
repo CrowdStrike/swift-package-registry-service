@@ -13,25 +13,15 @@ extension PackageRegistryController {
             throw Abort(.badRequest, title: "Missing query parameter 'url'")
         }
 
-        // Parse this URL as either an HTTPS or SSH Github URL
-        guard let githubURL = GithubURL(urlString: url) else {
-            // This is not a Github URL, so we respond with a 404.
-            throw Abort(.notFound, title: "URL does not appear to be a valid Github URL")
-        }
+        // Look up the packageID
+        let packageID = try await identifiersActor.loadPackageID(url: url, logger: req.logger)
 
-        // Get the cached repository flag information
-        let isRepository = try await identifiersActor.isRepository(owner: githubURL.scope, repo: githubURL.name, logger: req.logger)
-
-        guard isRepository else {
+        guard let packageID else {
             // The Github API said it did not find a repository with this owner and repo.
             throw Abort(.notFound, title: "No such repository found.")
         }
 
-        return .init(
-            identifiers: [
-                githubURL.packageIdentifier
-            ]
-        )
+        return .init(identifiers: [packageID])
     }
 
     private struct LookupPackageIdentifiersQueryParameters: Content {
