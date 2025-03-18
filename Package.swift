@@ -17,6 +17,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-overture.git", from: "0.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-concurrency-extras.git", from: "1.3.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.81.0"),
+        .package(url: "https://github.com/groue/Semaphore.git", from: "0.1.0"),
     ],
     targets: [
         .executableTarget(
@@ -24,6 +25,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "HTTPTypes", package: "swift-http-types"),
+                .product(name: "Semaphore", package: "Semaphore"),
                 .target(name: "ChecksumClientImpl"),
                 .target(name: "GithubAPIClientImpl"),
                 .target(name: "APIUtilities"),

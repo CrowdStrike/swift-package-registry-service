@@ -81,10 +81,13 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
+        let repositoriesFileActor = RepositoriesFileActor(persistenceClient: persistenceClient)
+
         let identifiersActor = IdentifiersActor { url, reqLogger in
             try await Self.fetchPackageID(
                 url: url,
                 githubAPIClient: githubAPIClient,
+                repositoriesFileActor: repositoriesFileActor,
                 logger: reqLogger
             )
         }
@@ -93,6 +96,10 @@ struct PackageRegistryController: RouteCollection {
         self.releaseMetadataActor = releaseMetadataActor
         self.manifestsActor = manifestsActor
         self.identifiersActor = identifiersActor
+    }
+
+    func loadMemoryCacheFromDiskCache() async throws {
+        try await identifiersActor.load(from: persistenceClient)
     }
 
     func boot(routes: any RoutesBuilder) throws {

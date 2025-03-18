@@ -37,5 +37,7 @@ public func configure(
         appLogger: logger
     )
 
+    try await controller.loadMemoryCacheFromDiskCache()
+
     try app.register(collection: controller)
 }

@@ -3,7 +3,17 @@ import PersistenceClient
 import Vapor
 
 actor IdentifiersActor {
-    typealias PackageIDLoader = @Sendable (_ url: String, _ logger: Logger) async throws -> String?
+    struct PackageIDLoaderOutput: Equatable, Sendable, Codable {
+        var packageID: String
+        var otherURLs: [String]
+
+        init(packageID: String, otherURLs: [String]) {
+            self.packageID = packageID
+            self.otherURLs = otherURLs
+        }
+    }
+
+    typealias PackageIDLoader = @Sendable (_ url: String, _ logger: Logger) async throws -> PackageIDLoaderOutput?
 
     private var memoryCache: [String: PackageIDState] = [:]
     private let packageIDLoader: PackageIDLoader
@@ -13,6 +23,8 @@ actor IdentifiersActor {
     }
 
     func load(from persistenceClient: PersistenceClient) async throws {
+        // Only load when the memory cache is empty
+        guard memoryCache.isEmpty else { return }
         let repositoriesFile = try await persistenceClient.readRepositories()
         memoryCache = repositoriesFile.urlToPackageIDMap.mapValues { .loaded($0) }
     }
@@ -25,7 +37,7 @@ actor IdentifiersActor {
                 return packageID
             case .loading(let task):
                 logger.debug("PackageID memory cache is loading for \"\(url)\". Awaiting loading task.")
-                return try await task.value
+                return try await task.value?.packageID
             }
         }
 
@@ -36,12 +48,17 @@ actor IdentifiersActor {
         memoryCache[url] = .loading(task)
 
         do {
-            if let packageID = try await task.value {
-                logger.debug("Loaded packageID=\"\(packageID)\" from packageIDLoader for \"\(url)\"")
-                memoryCache[url] = .loaded(packageID)
-                return packageID
+            if let output = try await task.value {
+                logger.debug("Loaded packageID=\"\(output.packageID)\" from packageIDLoader for \"\(url)\"")
+                memoryCache[url] = .loaded(output.packageID)
+                output.otherURLs.forEach {
+                    if memoryCache[$0] == nil {
+                        memoryCache[$0] = .loaded(output.packageID)
+                    }
+                }
+                return output.packageID
             } else {
-                logger.debug("packageIDLoader returned nil packageID for \"\(url)\"")
+                logger.debug("packageIDLoader returned nil output for \"\(url)\"")
                 memoryCache[url] = nil
                 return nil
             }
@@ -53,7 +70,7 @@ actor IdentifiersActor {
     }
 
     private enum PackageIDState {
-        case loading(Task<String?, Error>)
+        case loading(Task<PackageIDLoaderOutput?, Error>)
         case loaded(String)
     }
 }
