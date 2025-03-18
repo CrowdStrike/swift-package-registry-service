@@ -41,14 +41,14 @@ extension PersistenceClient {
 
 extension PersistenceClient.RepositoriesFile {
 
-    static let mock = Self(
+    public static let mock = Self(
         lastUpdatedAt: ISO8601DateFormatter().date(from: "2025-03-16T19:23:47Z")!,
         repositories: PersistenceClient.Repository.mocks
     )
 }
 
 extension PersistenceClient.Repository {
-    static let mock = Self(
+    public static let mock = Self(
         id: 128791170,
         owner: "pointfreeco",
         name: "swift-overture",
@@ -57,7 +57,7 @@ extension PersistenceClient.Repository {
         htmlURL: "https://github.com/pointfreeco/swift-overture"
     )
 
-    static let mocks: [Self] = [
+    public static let mocks: [Self] = [
         .init(
             id: 128791170,
             owner: "pointfreeco",
