@@ -7,8 +7,6 @@ extension PersistenceClient {
     public static func test(
         readTags: (@Sendable (_ owner: String, _ repo: String) async throws -> TagFile)? = nil,
         saveTags: (@Sendable (_ owner: String, _ repo: String, _ tagFile: TagFile) async throws -> Void)? = nil,
-        readReleases: (@Sendable (_ owner: String, _ repo: String) async throws -> [Release])? = nil,
-        saveReleases: (@Sendable (_ releases: [Release]) async throws -> Void)? = nil,
         saveZipBall: (@Sendable(_ owner: String, _ repo: String, _ version: Version, _ zipBallURL: String) async throws -> String)? = nil,
         readReleaseMetadata: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> ReleaseMetadata?)? = nil,
         saveReleaseMetadata: (@Sendable (_ owner: String, _ repo: String, _ metadata: ReleaseMetadata) async throws -> Void)? = nil,
@@ -24,12 +22,6 @@ extension PersistenceClient {
             }
             if let saveTags {
                 $0.saveTags = saveTags
-            }
-            if let readReleases {
-                $0.readReleases = readReleases
-            }
-            if let saveReleases {
-                $0.saveReleases = saveReleases
             }
             if let saveZipBall {
                 $0.saveZipBall = saveZipBall

@@ -31,31 +31,6 @@ extension PersistenceClient {
                 let buffer = try encoder.encodeAsByteBuffer(tagFile, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: buffer, path: path)
             },
-            readReleases: { owner, repo in
-                let path = releasesFileName(cacheRootDirectory: cacheRootDirectory, owner: owner, repo: repo)
-                let buffer = try await fileClient.readFile(path: path)
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                return try decoder.decode([Release].self, from: buffer)
-            },
-            saveReleases: { releases in
-                guard !releases.isEmpty else { return }
-                // Ensure that all releases have same owner and repo
-                let firstOwner = releases[0].owner
-                let firstRepo = releases[0].repo
-                guard releases.allSatisfy({ $0.owner == firstOwner && $0.repo == firstRepo }) else {
-                    throw PersistenceClientError.releasesHaveMixedOwnerRepo
-                }
-                let path = releasesFileName(cacheRootDirectory: cacheRootDirectory, owner: firstOwner, repo: firstRepo)
-                // Sort the releases newest-to-oldest
-                let sortedReleases = releases.sorted(by: >)
-                // Serialize the sorted list of releases
-                let encoder = JSONEncoder()
-                encoder.dateEncodingStrategy = .iso8601
-                encoder.outputFormatting = .default
-                let byteBuffer = try encoder.encodeAsByteBuffer(sortedReleases, allocator: byteBufferAllocator)
-                try await fileClient.writeFile(buffer: byteBuffer, path: path)
-            },
             saveZipBall: { owner, repo, version, zipBallURL in
                 // Fetch the entire zipBall into memory. TODO: Improve this by passing chunk-by-chunk into FileClient
                 let zipBytes = try await Self.fetchZipBall(url: zipBallURL, apiToken: githubAPIToken, httpStreamClient: httpStreamClient)
@@ -200,11 +175,6 @@ extension PersistenceClient {
     private static func tagsFileName(cacheRootDirectory: String, owner: String, repo: String) -> String {
         let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
         return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/tags.json"
-    }
-
-    private static func releasesFileName(cacheRootDirectory: String, owner: String, repo: String) -> String {
-        let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
-        return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/releases.json"
     }
 
     private static func zipBallFileName(cacheRootDirectory: String, owner: String, repo: String, version: Version) -> String {

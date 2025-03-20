@@ -14,15 +14,6 @@ public struct PersistenceClient: Sendable {
     public var saveTags: @Sendable (_ owner: String, _ repo: String, _ tagFile: TagFile) async throws -> Void = { _, _, _ in
         reportIssue("\(Self.self).saveTags not implemented")
     }
-    /// Reads all releases for the specified owner and repo
-    public var readReleases: @Sendable (_ owner: String, _ repo: String) async throws -> [Release] = { _, _ in
-        reportIssue("\(Self.self).readReleases not implemented")
-        return []
-    }
-    /// Save the specified releases
-    public var saveReleases: @Sendable (_ releases: [Release]) async throws -> Void = { _ in
-        reportIssue("\(Self.self).saveReleases not implemented")
-    }
     /// Download the zipBallURL to cache and return the path to the cached zip file in the filesystem
     public var saveZipBall: @Sendable(_ owner: String, _ repo: String, _ version: Version, _ zipBallURL: String) async throws -> String = { _, _, _, _ in
         reportIssue("\(Self.self).saveZipBall not implemented")
