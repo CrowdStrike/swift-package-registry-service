@@ -31,6 +31,16 @@ extension PersistenceClient {
                 let buffer = try encoder.encodeAsByteBuffer(tagFile, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: buffer, path: path)
             },
+            readSourceArchive: { owner, repo, version in
+                let cachedFileName = zipBallFileName(cacheRootDirectory: cacheRootDirectory, owner: owner, repo: repo, version: version)
+                let byteBuffer: ByteBuffer
+                do {
+                    byteBuffer = try await fileClient.readFile(path: cachedFileName)
+                } catch {
+                    return nil
+                }
+                return .init(fileName: cachedFileName, byteBuffer: byteBuffer)
+            },
             saveSourceArchive: { owner, repo, version, zipBallURL in
                 // Fetch the entire zipBall into memory. TODO: Improve this by passing chunk-by-chunk into FileClient
                 let zipBytes = try await Self.fetchZipBall(url: zipBallURL, apiToken: githubAPIToken, httpStreamClient: httpStreamClient)
@@ -58,16 +68,6 @@ extension PersistenceClient {
                 encoder.outputFormatting = .default
                 let byteBuffer = try encoder.encodeAsByteBuffer(metadata, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: byteBuffer, path: cachedFileName)
-            },
-            readSourceArchive: { owner, repo, version in
-                let cachedFileName = zipBallFileName(cacheRootDirectory: cacheRootDirectory, owner: owner, repo: repo, version: version)
-                let byteBuffer: ByteBuffer
-                do {
-                    byteBuffer = try await fileClient.readFile(path: cachedFileName)
-                } catch {
-                    return nil
-                }
-                return .init(fileName: cachedFileName, byteBuffer: byteBuffer)
             },
             readManifests: { owner, repo, version in
                 // Read and deserialize the manifest directory file. This could fail if we haven't cached anything yet.

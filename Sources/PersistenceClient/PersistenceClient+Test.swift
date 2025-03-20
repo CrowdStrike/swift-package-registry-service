@@ -7,10 +7,10 @@ extension PersistenceClient {
     public static func test(
         readTags: (@Sendable (_ owner: String, _ repo: String) async throws -> TagFile)? = nil,
         saveTags: (@Sendable (_ owner: String, _ repo: String, _ tagFile: TagFile) async throws -> Void)? = nil,
+        readSourceArchive: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> SourceArchive?)? = nil,
         saveSourceArchive: (@Sendable(_ owner: String, _ repo: String, _ version: Version, _ zipBallURL: String) async throws -> String)? = nil,
         readReleaseMetadata: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> ReleaseMetadata?)? = nil,
         saveReleaseMetadata: (@Sendable (_ owner: String, _ repo: String, _ metadata: ReleaseMetadata) async throws -> Void)? = nil,
-        readSourceArchive: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> SourceArchive?)? = nil,
         readManifests: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> [Manifest])? = nil,
         saveManifests: (@Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> Void)? = nil,
         readRepositories: (@Sendable () async throws -> RepositoriesFile)? = nil,
@@ -23,6 +23,9 @@ extension PersistenceClient {
             if let saveTags {
                 $0.saveTags = saveTags
             }
+            if let readSourceArchive {
+                $0.readSourceArchive = readSourceArchive
+            }
             if let saveSourceArchive {
                 $0.saveSourceArchive = saveSourceArchive
             }
@@ -31,9 +34,6 @@ extension PersistenceClient {
             }
             if let saveReleaseMetadata {
                 $0.saveReleaseMetadata = saveReleaseMetadata
-            }
-            if let readSourceArchive {
-                $0.readSourceArchive = readSourceArchive
             }
             if let readManifests {
                 $0.readManifests = readManifests
