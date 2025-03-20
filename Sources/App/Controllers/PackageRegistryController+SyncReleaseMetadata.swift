@@ -49,7 +49,7 @@ extension PackageRegistryController {
         let publishedAt = try await githubAPIClient.getReleaseByTagName(.init(owner: owner, repo: repo, tag: tagName)).publishedAt
 
         // Cache the zipBall
-        let zipBallPath = try await persistenceClient.saveZipBall(owner: owner, repo: repo, version: version, zipBallURL: tag.zipBallURL)
+        let zipBallPath = try await persistenceClient.saveSourceArchive(owner: owner, repo: repo, version: version, zipBallURL: tag.zipBallURL)
         logger.debug("Downloaded \"\(tag.zipBallURL)\" to \"\(zipBallPath)\"")
 
         // Compute the checksum from the cached zipBall file

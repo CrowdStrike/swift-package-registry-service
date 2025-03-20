@@ -31,7 +31,7 @@ extension PersistenceClient {
                 let buffer = try encoder.encodeAsByteBuffer(tagFile, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: buffer, path: path)
             },
-            saveZipBall: { owner, repo, version, zipBallURL in
+            saveSourceArchive: { owner, repo, version, zipBallURL in
                 // Fetch the entire zipBall into memory. TODO: Improve this by passing chunk-by-chunk into FileClient
                 let zipBytes = try await Self.fetchZipBall(url: zipBallURL, apiToken: githubAPIToken, httpStreamClient: httpStreamClient)
                 let cachedFileName = zipBallFileName(cacheRootDirectory: cacheRootDirectory, owner: owner, repo: repo, version: version)
