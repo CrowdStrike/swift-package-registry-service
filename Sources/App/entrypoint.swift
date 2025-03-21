@@ -37,6 +37,7 @@ enum Entrypoint {
                 ),
                 logger: app.logger,
                 githubAPIToken: githubAPIToken,
+                sqliteConfiguration: .file("db.sqlite"),
                 clientSupportsPagination: Environment.get("CLIENT_SUPPORTS_PAGINATION").flatMap(Bool.init) ?? false
             )
         } catch {
