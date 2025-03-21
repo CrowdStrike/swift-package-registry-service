@@ -16,10 +16,7 @@ enum Entrypoint {
         let app = try await Application.make(env)
 
         let githubAPIToken = Environment.get("GITHUB_API_TOKEN") ?? ""
-        let fileClient: FileClient = .live(
-            nonBlockingFileIO: app.fileio,
-            byteBufferAllocator: app.allocator
-        )
+        let fileClient: FileClient = .live()
         let httpStreamClient: HTTPStreamClient = .live()
         do {
             try await configure(
