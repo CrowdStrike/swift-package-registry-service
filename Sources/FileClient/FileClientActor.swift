@@ -15,7 +15,7 @@ actor FileClientActor {
 
         do {
             // Try to create this directory
-            try await FileSystem.shared.createDirectory(
+            try await fileSystem.createDirectory(
                 at: path,
                 withIntermediateDirectories: true,
                 permissions: [.ownerReadWriteExecute, .groupReadExecute, .otherReadExecute]
