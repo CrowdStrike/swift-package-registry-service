@@ -26,6 +26,7 @@ func testApp(
             persistenceClient: persistenceClient,
             logger: app.logger,
             githubAPIToken: githubAPIToken,
+            sqliteConfiguration: .memory,
             clientSupportsPagination: clientSupportsPagination
         )
         try await testAction(app)
