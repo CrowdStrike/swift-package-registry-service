@@ -48,8 +48,6 @@ public func configure(
         appLogger: logger
     )
 
-    try await controller.loadMemoryCache(from: app.db(.sqlite), logger: app.logger)
-
     try app.register(collection: controller)
 }
 

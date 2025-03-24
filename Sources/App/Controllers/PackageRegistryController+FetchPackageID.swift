@@ -14,6 +14,12 @@ extension PackageRegistryController {
         database: any Database,
         logger: Logger
     ) async throws -> String? {
+        logger.debug("Checking DB for repository with URL \"\(githubURL)\"")
+        if let repositoryFromDB = try await Self.repositoryFromDB(for: githubURL, on: database) {
+            logger.debug("Found DB repository id=\(repositoryFromDB.gitHubId). Returning \(githubURL.packageIdentifier)")
+            return githubURL.packageIdentifier
+        }
+
         logger.debug("Calling Github API GetRepository to fetch repository info for \"\(githubURL)\"...")
         // Call the GET /repos/{owner}/{repo} Github API endpoint to fetch the repository info.
         let repository = try await githubAPIClient
@@ -37,14 +43,31 @@ extension PackageRegistryController {
 
         return repository.packageID
     }
+
+    private static func repositoryFromDB(for githubURL: GithubURL, on database: any Database) async throws -> Repository? {
+        switch githubURL.urlType {
+        case .clone:
+            return try await Repository.query(on: database)
+                .filter(\.$cloneUrl == githubURL.description)
+                .first()
+        case .html:
+            return try await Repository.query(on: database)
+                .filter(\.$htmlUrl == githubURL.description)
+                .first()
+        case .ssh:
+            return try await Repository.query(on: database)
+                .filter(\.$sshUrl == githubURL.description)
+                .first()
+        }
+    }
 }
 
 extension GithubAPIClient.GetRepository.Output {
 
-    func toRepository(ownerFromRequest: String) throws -> PersistenceClient.Repository? {
+    func toRepository(ownerFromRequest: String) throws -> GithubAPIClient.Repository? {
         switch self {
-        case .ok(let okBody):
-            return okBody.toRepository(ownerFromRequest: ownerFromRequest)
+        case .ok(let repository):
+            return repository.ensureOwner(ownerFromRequest)
         case .movedPermanently:
             // TODO: handle this differently
             throw Abort(.movedPermanently)
@@ -58,16 +81,15 @@ extension GithubAPIClient.GetRepository.Output {
     }
 }
 
-extension GithubAPIClient.GetRepository.Output.OKBody {
+extension GithubAPIClient.Repository {
 
-    func toRepository(ownerFromRequest: String) -> PersistenceClient.Repository {
-        .init(
-            id: id,
-            owner: owner ?? ownerFromRequest,
-            name: name,
-            cloneURL: cloneURL,
-            sshURL: sshURL,
-            htmlURL: htmlURL
-        )
+    func ensureOwner(_ owner: String) -> Self {
+        if owner == self.owner {
+            return self
+        } else {
+            var mutableSelf = self
+            mutableSelf.owner = owner
+            return mutableSelf
+        }
     }
 }

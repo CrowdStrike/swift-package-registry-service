@@ -13,18 +13,6 @@ actor IdentifiersActor {
         self.packageIDLoader = packageIDLoader
     }
 
-    func loadMemoryCache(from githubURLs: [GithubURL], logger: Logger) {
-        logger.debug("IdentifiersActor.loadMemoryCache(): \(githubURLs.count) GithubURLs")
-        // Only load when the memory cache is empty
-        guard memoryCache.isEmpty else {
-            logger.debug("IdentifiersActor.loadMemoryCache() memoryCache is not empty. Skipping load.")
-            return
-        }
-        memoryCache = githubURLs.reduce(into: [String: PackageIDState]()) {
-            $0[$1.cacheKey] = .loaded($1.packageIdentifier)
-        }
-    }
-
     func loadPackageID(githubURL: GithubURL, logger: Logger, database: any Database) async throws -> String? {
         let memoryCacheKey = githubURL.cacheKey
         if let state = memoryCache[memoryCacheKey] {

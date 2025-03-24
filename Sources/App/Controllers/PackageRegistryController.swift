@@ -101,12 +101,6 @@ struct PackageRegistryController: RouteCollection {
         self.identifiersActor = identifiersActor
     }
 
-    func loadMemoryCache(from database: Database, logger: Logger) async throws {
-        let repositories = try await Repository.query(on: database).all()
-        logger.debug("Loaded \(repositories.count) Repositories from disk. Loading into memory cache.")
-        await identifiersActor.loadMemoryCache(from: repositories.flatMap(\.githubURLs), logger: logger)
-    }
-
     func boot(routes: any RoutesBuilder) throws {
         let scopeName = routes.grouped(":scope", ":name")
 

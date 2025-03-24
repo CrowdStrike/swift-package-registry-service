@@ -12,9 +12,7 @@ extension PersistenceClient {
         readReleaseMetadata: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> ReleaseMetadata?)? = nil,
         saveReleaseMetadata: (@Sendable (_ owner: String, _ repo: String, _ metadata: ReleaseMetadata) async throws -> Void)? = nil,
         readManifests: (@Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> [Manifest])? = nil,
-        saveManifests: (@Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> Void)? = nil,
-        readRepositories: (@Sendable () async throws -> RepositoriesFile)? = nil,
-        saveRepositories: (@Sendable (_ repositoriesFile: RepositoriesFile) async throws -> Void)? = nil
+        saveManifests: (@Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> Void)? = nil
     ) -> Self {
         update(.mock) {
             if let readTags {
@@ -40,12 +38,6 @@ extension PersistenceClient {
             }
             if let saveManifests {
                 $0.saveManifests = saveManifests
-            }
-            if let readRepositories {
-                $0.readRepositories = readRepositories
-            }
-            if let saveRepositories {
-                $0.saveRepositories = saveRepositories
             }
         }
     }

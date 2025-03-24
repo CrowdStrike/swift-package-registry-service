@@ -1,20 +1,20 @@
 import Fluent
 import Foundation
-import PersistenceClient
+import GithubAPIClient
 import Semaphore
 import Vapor
 
 actor DatabaseActor {
     private let semaphore = AsyncSemaphore(value: 1)
 
-    func addRepository(_ repository: PersistenceClient.Repository, logger: Logger, database: any Database) async throws {
+    func addRepository(_ repository: GithubAPIClient.Repository, logger: Logger, database: any Database) async throws {
         await semaphore.wait()
         defer { semaphore.signal() }
 
         try await _addRepository(repository, logger: logger, database: database)
     }
 
-    private func _addRepository(_ repository: PersistenceClient.Repository, logger: Logger, database: any Database) async throws {
+    private func _addRepository(_ repository: GithubAPIClient.Repository, logger: Logger, database: any Database) async throws {
         // Query to see if we already a repository with this Github repository id
         let repositoryWithIdCount = try await Repository.query(on: database)
             .filter(\.$gitHubId == repository.id)
