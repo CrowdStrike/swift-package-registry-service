@@ -1,19 +1,10 @@
+import APIUtilities
+import Fluent
 import Foundation
-import PersistenceClient
 import Vapor
 
 actor IdentifiersActor {
-    struct PackageIDLoaderOutput: Equatable, Sendable, Codable {
-        var packageID: String
-        var otherURLs: [String]
-
-        init(packageID: String, otherURLs: [String]) {
-            self.packageID = packageID
-            self.otherURLs = otherURLs
-        }
-    }
-
-    typealias PackageIDLoader = @Sendable (_ url: String, _ logger: Logger) async throws -> PackageIDLoaderOutput?
+    typealias PackageIDLoader = @Sendable (_ githubURL: GithubURL, _ logger: Logger, _ database: any Database) async throws -> String?
 
     private var memoryCache: [String: PackageIDState] = [:]
     private let packageIDLoader: PackageIDLoader
@@ -22,55 +13,63 @@ actor IdentifiersActor {
         self.packageIDLoader = packageIDLoader
     }
 
-    func load(from persistenceClient: PersistenceClient) async throws {
+    func loadMemoryCache(from githubURLs: [GithubURL], logger: Logger) {
+        logger.debug("IdentifiersActor.loadMemoryCache(): \(githubURLs.count) GithubURLs")
         // Only load when the memory cache is empty
-        guard memoryCache.isEmpty else { return }
-        let repositoriesFile = try await persistenceClient.readRepositories()
-        memoryCache = repositoriesFile.urlToPackageIDMap.mapValues { .loaded($0) }
+        guard memoryCache.isEmpty else {
+            logger.debug("IdentifiersActor.loadMemoryCache() memoryCache is not empty. Skipping load.")
+            return
+        }
+        memoryCache = githubURLs.reduce(into: [String: PackageIDState]()) {
+            $0[$1.cacheKey] = .loaded($1.packageIdentifier)
+        }
     }
 
-    func loadPackageID(url: String, logger: Logger) async throws -> String? {
-        if let state = memoryCache[url] {
+    func loadPackageID(githubURL: GithubURL, logger: Logger, database: any Database) async throws -> String? {
+        let memoryCacheKey = githubURL.cacheKey
+        if let state = memoryCache[memoryCacheKey] {
             switch state {
             case .loaded(let packageID):
-                logger.debug("Loaded packageId \"\(packageID)\" from memory cache for \"\(url)\"")
+                logger.debug("Loaded packageId \"\(packageID)\" from memory cache for \"\(githubURL)\"")
                 return packageID
             case .loading(let task):
-                logger.debug("PackageID memory cache is loading for \"\(url)\". Awaiting loading task.")
-                return try await task.value?.packageID
+                logger.debug("PackageID memory cache is loading for \"\(githubURL)\". Awaiting loading task.")
+                return try await task.value
             }
         }
 
         let task = Task {
-            try await packageIDLoader(url, logger)
+            try await packageIDLoader(githubURL, logger, database)
         }
 
-        memoryCache[url] = .loading(task)
+        memoryCache[memoryCacheKey] = .loading(task)
 
         do {
-            if let output = try await task.value {
-                logger.debug("Loaded packageID=\"\(output.packageID)\" from packageIDLoader for \"\(url)\"")
-                memoryCache[url] = .loaded(output.packageID)
-                output.otherURLs.forEach {
-                    if memoryCache[$0] == nil {
-                        memoryCache[$0] = .loaded(output.packageID)
-                    }
-                }
-                return output.packageID
+            if let packageID = try await task.value {
+                logger.debug("Loaded packageID=\"\(packageID)\" from packageIDLoader for \"\(githubURL)\"")
+                memoryCache[memoryCacheKey] = .loaded(packageID)
+                return packageID
             } else {
-                logger.debug("packageIDLoader returned nil output for \"\(url)\"")
-                memoryCache[url] = nil
+                logger.debug("packageIDLoader returned nil output for \"\(githubURL)\"")
+                memoryCache[memoryCacheKey] = nil
                 return nil
             }
         } catch {
-            memoryCache[url] = nil
-            logger.error("packageIDLoader threw an error for \"\(url)\": \(error)")
+            memoryCache[memoryCacheKey] = nil
+            logger.error("packageIDLoader threw an error for \"\(githubURL)\": \(error)")
             throw error
         }
     }
 
     private enum PackageIDState {
-        case loading(Task<PackageIDLoaderOutput?, Error>)
+        case loading(Task<String?, Error>)
         case loaded(String)
+    }
+}
+
+private extension GithubURL {
+
+    var cacheKey: String {
+        "\(scope.lowercased()).\(name.lowercased())"
     }
 }

@@ -1,5 +1,6 @@
 import APIUtilities
 import ChecksumClient
+import Fluent
 import GithubAPIClient
 import PersistenceClient
 import Vapor
@@ -7,21 +8,16 @@ import Vapor
 extension PackageRegistryController {
 
     static func fetchPackageID(
-        url: String,
+        githubURL: GithubURL,
         githubAPIClient: GithubAPIClient,
-        repositoriesFileActor: RepositoriesFileActor,
+        databaseActor: DatabaseActor,
+        database: any Database,
         logger: Logger
-    ) async throws -> IdentifiersActor.PackageIDLoaderOutput? {
-        // Parse this URL as either an HTTPS or SSH Github URL
-        guard let githubURL = GithubURL(urlString: url) else {
-            // This is not a Github URL, so we just return a nil packageID
-            logger.debug("\"\(url)\" is not a valid Github URL, returning nil.")
-            return nil
-        }
-
-        // Call the GET /repos/{owner}/{repo} Github API endpoint
-        // to fetch the repository info.
-        let repository = try await githubAPIClient.getRepository(.init(owner: githubURL.scope, repo: githubURL.name))
+    ) async throws -> String? {
+        logger.debug("Calling Github API GetRepository to fetch repository info for \"\(githubURL)\"...")
+        // Call the GET /repos/{owner}/{repo} Github API endpoint to fetch the repository info.
+        let repository = try await githubAPIClient
+            .getRepository(.init(owner: githubURL.scope, repo: githubURL.name))
             .toRepository(ownerFromRequest: githubURL.scope)
 
         guard let repository else {
@@ -29,25 +25,17 @@ extension PackageRegistryController {
             // This means that the GithubAPI returned a 404 Not Found, which
             // would be the expected result when no such owner/repo pair was found.
             // So we don't throw an error, but just return nil.
-            logger.debug("GitubAPIClient returned nil repository for \"\(url)\", so returning nil.")
+            logger.debug("GitubAPIClient returned nil repository for \"\(githubURL)\", so returning nil.")
             return nil
         }
+        logger.debug("Github GetRepository returned repository with github_id=\(repository.id)")
 
-        // Add this repository to the disk cache
-        logger.debug("Adding repository \"\(repository.packageID)\" to disk cache.")
-        try await repositoriesFileActor.addRepository(repository)
-        logger.debug("Added repository \"\(repository.packageID)\" to disk cache.")
+        // Add this repository to the database
+        try await databaseActor.addRepository(repository, logger: logger, database: database)
 
-        let allURLs = [
-            repository.cloneURL,
-            repository.htmlURL,
-            repository.sshURL,
-        ]
+        logger.debug("Added repository with github_id=\(repository.id) to database.")
 
-        return .init(
-            packageID: repository.packageID,
-            otherURLs: allURLs.filter { $0 != url }
-        )
+        return repository.packageID
     }
 }
 

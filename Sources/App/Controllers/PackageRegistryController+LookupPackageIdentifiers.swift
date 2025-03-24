@@ -13,8 +13,21 @@ extension PackageRegistryController {
             throw Abort(.badRequest, title: "Missing query parameter 'url'")
         }
 
+        // If this URL doesn't parse in one of these forms, then reject it:
+        // - An "HTML URL": "https://github.com/<scope>/<name>"
+        // - A "Clone URL": "https://github.com/<scope>/<name>.git"
+        // - An "SSH URL": "git@github.com:<scope>/<name>.git"
+        guard let githubURL = GithubURL(urlString: url) else {
+            req.logger.debug("\"\(url)\" is not a Github URL. Returning 404 Not Found.")
+            throw Abort(.notFound, title: "Not a Github URL.")
+        }
+
         // Look up the packageID
-        let packageID = try await identifiersActor.loadPackageID(url: url, logger: req.logger)
+        let packageID = try await identifiersActor.loadPackageID(
+            githubURL: githubURL,
+            logger: req.logger,
+            database: req.db
+        )
 
         guard let packageID else {
             // The Github API said it did not find a repository with this owner and repo.
