@@ -74,3 +74,6 @@ fastlane/test_output
 
 .sprsCache
 
+# This is the default SQLite database
+
+db.sqlite

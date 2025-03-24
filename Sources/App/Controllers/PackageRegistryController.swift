@@ -1,5 +1,7 @@
+import APIUtilities
 import Dependencies
 import ChecksumClient
+import Fluent
 import Foundation
 import GithubAPIClient
 import HTTPStreamClient
@@ -81,13 +83,14 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let repositoriesFileActor = RepositoriesFileActor(persistenceClient: persistenceClient)
+        let databaseActor = DatabaseActor()
 
-        let identifiersActor = IdentifiersActor { url, reqLogger in
+        let identifiersActor = IdentifiersActor { githubURL, reqLogger, database in
             try await Self.fetchPackageID(
-                url: url,
+                githubURL: githubURL,
                 githubAPIClient: githubAPIClient,
-                repositoriesFileActor: repositoriesFileActor,
+                databaseActor: databaseActor,
+                database: database,
                 logger: reqLogger
             )
         }
@@ -96,10 +99,6 @@ struct PackageRegistryController: RouteCollection {
         self.releaseMetadataActor = releaseMetadataActor
         self.manifestsActor = manifestsActor
         self.identifiersActor = identifiersActor
-    }
-
-    func loadMemoryCacheFromDiskCache() async throws {
-        try await identifiersActor.load(from: persistenceClient)
     }
 
     func boot(routes: any RoutesBuilder) throws {
@@ -122,5 +121,22 @@ struct PackageRegistryController: RouteCollection {
 
         // Login
         routes.post("login", use: login)
+    }
+}
+
+private extension Repository {
+
+    var githubURLs: [GithubURL] {
+        [htmlGithubURL, cloneGithubURL, sshGithubURL].compactMap { $0 }
+    }
+
+    var htmlGithubURL: GithubURL? {
+        GithubURL(urlString: htmlUrl)
+    }
+    var cloneGithubURL: GithubURL? {
+        GithubURL(urlString: cloneUrl)
+    }
+    var sshGithubURL: GithubURL? {
+        GithubURL(urlString: sshUrl)
     }
 }

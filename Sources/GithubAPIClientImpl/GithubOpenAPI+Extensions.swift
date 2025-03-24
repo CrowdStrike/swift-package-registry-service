@@ -190,7 +190,7 @@ extension Operations.ReposGet.Output {
     var asOutput: GithubAPIClient.GetRepository.Output {
         switch self {
         case .ok(let okBody):
-            return .ok(okBody.body.fullRepository.asOKBody)
+            return .ok(okBody.body.fullRepository.asRepository)
         case .movedPermanently:
             return .movedPermanently
         case .forbidden:
@@ -214,11 +214,11 @@ extension Operations.ReposGet.Output.Ok.Body {
 
 extension Components.Schemas.FullRepository {
 
-    var asOKBody: GithubAPIClient.GetRepository.Output.OKBody {
+    var asRepository: GithubAPIClient.Repository {
         .init(
             id: id,
             nodeId: nodeId,
-            owner: owner?.login,
+            owner: owner?.login ?? "",
             name: name,
             htmlURL: htmlUrl,
             cloneURL: cloneUrl,

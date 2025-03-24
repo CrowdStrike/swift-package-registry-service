@@ -1,5 +1,6 @@
 import APIUtilities
 import ChecksumClient
+import Fluent
 import GithubAPIClient
 import PersistenceClient
 import Vapor
@@ -7,21 +8,22 @@ import Vapor
 extension PackageRegistryController {
 
     static func fetchPackageID(
-        url: String,
+        githubURL: GithubURL,
         githubAPIClient: GithubAPIClient,
-        repositoriesFileActor: RepositoriesFileActor,
+        databaseActor: DatabaseActor,
+        database: any Database,
         logger: Logger
-    ) async throws -> IdentifiersActor.PackageIDLoaderOutput? {
-        // Parse this URL as either an HTTPS or SSH Github URL
-        guard let githubURL = GithubURL(urlString: url) else {
-            // This is not a Github URL, so we just return a nil packageID
-            logger.debug("\"\(url)\" is not a valid Github URL, returning nil.")
-            return nil
+    ) async throws -> String? {
+        logger.debug("Checking DB for repository with URL \"\(githubURL)\"")
+        if let repositoryFromDB = try await Self.repositoryFromDB(for: githubURL, on: database) {
+            logger.debug("Found DB repository id=\(repositoryFromDB.gitHubId). Returning \(githubURL.packageIdentifier)")
+            return githubURL.packageIdentifier
         }
 
-        // Call the GET /repos/{owner}/{repo} Github API endpoint
-        // to fetch the repository info.
-        let repository = try await githubAPIClient.getRepository(.init(owner: githubURL.scope, repo: githubURL.name))
+        logger.debug("Calling Github API GetRepository to fetch repository info for \"\(githubURL)\"...")
+        // Call the GET /repos/{owner}/{repo} Github API endpoint to fetch the repository info.
+        let repository = try await githubAPIClient
+            .getRepository(.init(owner: githubURL.scope, repo: githubURL.name))
             .toRepository(ownerFromRequest: githubURL.scope)
 
         guard let repository else {
@@ -29,34 +31,43 @@ extension PackageRegistryController {
             // This means that the GithubAPI returned a 404 Not Found, which
             // would be the expected result when no such owner/repo pair was found.
             // So we don't throw an error, but just return nil.
-            logger.debug("GitubAPIClient returned nil repository for \"\(url)\", so returning nil.")
+            logger.debug("GitubAPIClient returned nil repository for \"\(githubURL)\", so returning nil.")
             return nil
         }
+        logger.debug("Github GetRepository returned repository with github_id=\(repository.id)")
 
-        // Add this repository to the disk cache
-        logger.debug("Adding repository \"\(repository.packageID)\" to disk cache.")
-        try await repositoriesFileActor.addRepository(repository)
-        logger.debug("Added repository \"\(repository.packageID)\" to disk cache.")
+        // Add this repository to the database
+        try await databaseActor.addRepository(repository, logger: logger, database: database)
 
-        let allURLs = [
-            repository.cloneURL,
-            repository.htmlURL,
-            repository.sshURL,
-        ]
+        logger.debug("Added repository with github_id=\(repository.id) to database.")
 
-        return .init(
-            packageID: repository.packageID,
-            otherURLs: allURLs.filter { $0 != url }
-        )
+        return repository.packageID
+    }
+
+    private static func repositoryFromDB(for githubURL: GithubURL, on database: any Database) async throws -> Repository? {
+        switch githubURL.urlType {
+        case .clone:
+            return try await Repository.query(on: database)
+                .filter(\.$cloneUrl == githubURL.description)
+                .first()
+        case .html:
+            return try await Repository.query(on: database)
+                .filter(\.$htmlUrl == githubURL.description)
+                .first()
+        case .ssh:
+            return try await Repository.query(on: database)
+                .filter(\.$sshUrl == githubURL.description)
+                .first()
+        }
     }
 }
 
 extension GithubAPIClient.GetRepository.Output {
 
-    func toRepository(ownerFromRequest: String) throws -> PersistenceClient.Repository? {
+    func toRepository(ownerFromRequest: String) throws -> GithubAPIClient.Repository? {
         switch self {
-        case .ok(let okBody):
-            return okBody.toRepository(ownerFromRequest: ownerFromRequest)
+        case .ok(let repository):
+            return repository.ensureOwner(ownerFromRequest)
         case .movedPermanently:
             // TODO: handle this differently
             throw Abort(.movedPermanently)
@@ -70,16 +81,15 @@ extension GithubAPIClient.GetRepository.Output {
     }
 }
 
-extension GithubAPIClient.GetRepository.Output.OKBody {
+extension GithubAPIClient.Repository {
 
-    func toRepository(ownerFromRequest: String) -> PersistenceClient.Repository {
-        .init(
-            id: id,
-            owner: owner ?? ownerFromRequest,
-            name: name,
-            cloneURL: cloneURL,
-            sshURL: sshURL,
-            htmlURL: htmlURL
-        )
+    func ensureOwner(_ owner: String) -> Self {
+        if owner == self.owner {
+            return self
+        } else {
+            var mutableSelf = self
+            mutableSelf.owner = owner
+            return mutableSelf
+        }
     }
 }

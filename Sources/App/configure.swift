@@ -1,4 +1,6 @@
 import ChecksumClient
+import Fluent
+import FluentSQLiteDriver
 import GithubAPIClient
 import HTTPStreamClient
 import PersistenceClient
@@ -13,6 +15,7 @@ public func configure(
     persistenceClient: PersistenceClient,
     logger: Logger,
     githubAPIToken: String,
+    sqliteConfiguration: SQLiteConfiguration,
     clientSupportsPagination: Bool = false
 ) async throws {
     // Clear all default middleware (then, add back route logging)
@@ -20,6 +23,14 @@ public func configure(
     app.middleware.use(CustomRouteLoggingMiddleware(logLevel: .info))
     // Add custom error handling middleware first.
     app.middleware.use(ProblemDetailsErrorMiddleware.default(environment: environment))
+
+    // Set up the database
+    app.databases.use(.sqlite(sqliteConfiguration), as: .sqlite)
+    // Add migrations
+    app.migrations.add(CreateRepositories())
+    if sqliteConfiguration.storage.isMemory {
+        try await app.autoMigrate()
+    }
 
     let scheme = app.http.server.configuration.tlsConfiguration != nil ? "https" : "http"
     let hostname = app.http.server.configuration.hostname
@@ -37,7 +48,14 @@ public func configure(
         appLogger: logger
     )
 
-    try await controller.loadMemoryCacheFromDiskCache()
-
     try app.register(collection: controller)
+}
+
+extension SQLiteConfiguration.Storage {
+    var isMemory: Bool {
+        switch self {
+        case .file: false
+        case .memory: true
+        }
+    }
 }

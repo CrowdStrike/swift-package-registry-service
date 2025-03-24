@@ -4,6 +4,7 @@ import FileClient
 import GithubAPIClient
 import GithubAPIClientImpl
 import HTTPStreamClient
+import _NIOFileSystem
 import Logging
 import Vapor
 
@@ -18,6 +19,9 @@ enum Entrypoint {
         let githubAPIToken = Environment.get("GITHUB_API_TOKEN") ?? ""
         let fileClient: FileClient = .live()
         let httpStreamClient: HTTPStreamClient = .live()
+        let cacheRootDirectory = app.directory.workingDirectory.appending(".sprsCache/")
+        try await Self.ensureDirectoryExists(cacheRootDirectory)
+        let dbPath = cacheRootDirectory.appending("db.sqlite")
         do {
             try await configure(
                 app,
@@ -29,11 +33,12 @@ enum Entrypoint {
                     fileClient: fileClient,
                     httpStreamClient: httpStreamClient,
                     byteBufferAllocator: app.allocator,
-                    cacheRootDirectory: app.directory.workingDirectory.appending(".sprsCache/"),
+                    cacheRootDirectory: cacheRootDirectory,
                     githubAPIToken: githubAPIToken
                 ),
                 logger: app.logger,
                 githubAPIToken: githubAPIToken,
+                sqliteConfiguration: .file(dbPath),
                 clientSupportsPagination: Environment.get("CLIENT_SUPPORTS_PAGINATION").flatMap(Bool.init) ?? false
             )
         } catch {
@@ -43,5 +48,25 @@ enum Entrypoint {
         }
         try await app.execute()
         try await app.asyncShutdown()
+    }
+
+    private static func ensureDirectoryExists(_ path: String) async throws {
+        // Ensure the cache directory exists
+        do {
+            try await FileSystem.shared.createDirectory(
+                at: FilePath(path),
+                withIntermediateDirectories: true,
+                permissions: [.ownerReadWriteExecute, .groupReadExecute, .otherReadExecute]
+            )
+        } catch let fileSystemError as FileSystemError {
+            switch fileSystemError.code {
+            case .fileAlreadyExists:
+                return
+            default:
+                throw fileSystemError
+            }
+        } catch {
+            throw error
+        }
     }
 }

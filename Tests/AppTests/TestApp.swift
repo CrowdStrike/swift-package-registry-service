@@ -10,7 +10,7 @@ func testApp(
     githubAPIClient: GithubAPIClient = .mock,
     checksumClient: ChecksumClient = .mock,
     httpStreamClient: HTTPStreamClient = .mock,
-    persistenceClient: PersistenceClient = .test(readRepositories: { .mock }),
+    persistenceClient: PersistenceClient = .test(),
     githubAPIToken: String = "",
     clientSupportsPagination: Bool = false,
     testAction: (Application) async throws -> ()
@@ -26,6 +26,7 @@ func testApp(
             persistenceClient: persistenceClient,
             logger: app.logger,
             githubAPIToken: githubAPIToken,
+            sqliteConfiguration: .memory,
             clientSupportsPagination: clientSupportsPagination
         )
         try await testAction(app)
