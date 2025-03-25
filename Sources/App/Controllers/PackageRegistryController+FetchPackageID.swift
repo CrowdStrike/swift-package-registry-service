@@ -16,7 +16,7 @@ extension PackageRegistryController {
     ) async throws -> String? {
         logger.debug("Checking DB for repository with URL \"\(githubURL)\"")
         if let repositoryFromDB = try await Self.repositoryFromDB(for: githubURL, on: database) {
-            logger.debug("Found DB repository id=\(repositoryFromDB.gitHubId). Returning \(githubURL.packageIdentifier)")
+            logger.debug("Found DB repository id=\(String(describing: repositoryFromDB.id)). Returning \(githubURL.packageIdentifier)")
             return githubURL.packageIdentifier
         }
 
