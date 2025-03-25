@@ -43,73 +43,27 @@ Support for this endpoint is OPTIONAL. A server SHOULD indicate that publishing 
 Since we are only interested in our service being a read-only service, then we do not support publishing, and thus the Create Package Release
 endpoint always returns `405 Method Not Allowed`.
 
-## Github API
-
-We can implement a Swift Package Registry Service by using these four operations in the Github API:
-
-1. [List Repository Tags](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repository-tags)
-2. [Get A Release By Tag Name](https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#get-a-release-by-tag-name)
-3. [Get Repository Content](https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#get-repository-content)
-4. [Get Repository](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository)
-
-### List Repository Tags
-
-This endpoint in the Github API provides a paginated list of tags for a repository:
-
-```
-$ curl -H "X-GitHub-Api-Version: 2022-11-28" \
-     -H "Accept: application/vnd.github+json" \
-     -H "Authorization: Bearer <your-PAT>" \
-     --no-progress-meter \
-     https://api.github.com/repos/pointfreeco/swift-overture/tags
-[
-  {
-    "name": "0.5.0",
-    "zipball_url": "https://api.github.com/repos/pointfreeco/swift-overture/zipball/refs/tags/0.5.0",
-    "tarball_url": "https://api.github.com/repos/pointfreeco/swift-overture/tarball/refs/tags/0.5.0",
-    "commit": {
-      "sha": "7977acd7597f413717058acc1e080731249a1d7e",
-      "url": "https://api.github.com/repos/pointfreeco/swift-overture/commits/7977acd7597f413717058acc1e080731249a1d7e"
-    },
-    "node_id": "MDM6UmVmMTI4NzkxMTcwOnJlZnMvdGFncy8wLjUuMA=="
-  },
-  ...,
-  {
-    "name": "0.1.0",
-    "zipball_url": "https://api.github.com/repos/pointfreeco/swift-overture/zipball/refs/tags/0.1.0",
-    "tarball_url": "https://api.github.com/repos/pointfreeco/swift-overture/tarball/refs/tags/0.1.0",
-    "commit": {
-      "sha": "b907805523ca75a0c9fdaaf1bdf81b3fe3360ac7",
-      "url": "https://api.github.com/repos/pointfreeco/swift-overture/commits/b907805523ca75a0c9fdaaf1bdf81b3fe3360ac7"
-    },
-    "node_id": "MDM6UmVmMTI4NzkxMTcwOnJlZnMvdGFncy8wLjEuMA=="
-  }
-]
-```
-
-Notice the information we need in each tag dictionary is: a) the tag `name`; and b) the `zipball_url`, which is an URL to download
-the source archive for that tag.
-
-#### Tags vs Semantic Versions
-
-Notice that the tags listed above are simply git tags. They can be whatever the repository
-author wants them to be: "1.2.3", "v1.2.3", "version_1.2.3", or whatever.
-
-The [Swift Package Registry Service Specification](https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#2-definitions),
-on the other hand, specifies that its versions MUST be semantic verions, as defined by
-the [Semantic Versioning 2.0.0 spec](https://semver.org/).
-
-### Get A Release By Tag Name
-
-### Get Repository Content
-
-### Get Repository
-
 The sections which follow provide more detail into the implementation of each of the endpoints.
 
 ## List Package Releases implementation
 
+The List Packages Releases (`GET /{scope}/{name}`) endpoint is implemented as follows:
 
+1. Do checks to validate the input parameters (package scope, package name, and Accept header).
+2. Check the memory cache for tag information for this package:
+   - If there is cached tag information and it is less than 5 minutes old, then use it to construct the response.
+   - Otherwise, we proceed to step 3 to refresh the memory-cached tag information.
+3. Attempt to read the cached tag information from the disk cache. If the age
+   of the disk-cached tag information is less than 30 minutes old, then use to to construct
+   the response. Otherwise, proceed to step 4 to refresh the disk-cached tag information.
+4. If we have at least one tag in the disk-cache, then call the Github API
+   [List Repository Tags](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repository-tags)
+   endpoint to fetch the latest tag. If the latest tag was present in the disk cache,
+   then we know the disk cache is up-to-date and we use the tag information
+   in the disk cache to construct the response. Otherwise, we proceed to step 5.
+5. Next, using the same 
+   [List Repository Tags](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repository-tags)
+   endpoint, we fetch all of the tags for this repository, one page at a time.
 ## Fetch Release Metadata Implementation
 
 
