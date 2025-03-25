@@ -17,7 +17,7 @@ actor DatabaseActor {
     private func _addRepository(_ repository: GithubAPIClient.Repository, logger: Logger, database: any Database) async throws {
         // Query to see if we already a repository with this Github repository id
         let repositoryWithIdCount = try await Repository.query(on: database)
-            .filter(\.$gitHubId == repository.id)
+            .filter(\.$id == repository.id)
             .count()
         guard repositoryWithIdCount == 0 else {
             logger.debug("Repository with id=\(repository.id) already exists in database. Skipping database add.")
@@ -25,7 +25,7 @@ actor DatabaseActor {
         }
 
         let repositoryToAdd = Repository(
-            gitHubId: repository.id,
+            id: repository.id,
             htmlUrl: repository.htmlURL,
             cloneUrl: repository.cloneURL,
             sshUrl: repository.sshURL

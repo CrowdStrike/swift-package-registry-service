@@ -5,12 +5,8 @@ import Vapor
 final class Repository: Model, @unchecked Sendable {
     static let schema = "repositories"
 
-    @ID(key: .id)
-    var id: UUID?
-
-    // This is the id returned from the Github API
-    @Field(key: "github_id")
-    var gitHubId: Int64
+    @ID(custom: .id, generatedBy: .user)
+    var id: Int64?
 
     @Field(key: "html_url")
     var htmlUrl: String
@@ -24,14 +20,12 @@ final class Repository: Model, @unchecked Sendable {
     init() { }
 
     init(
-        id: UUID? = nil,
-        gitHubId: Int64,
+        id: Int64,
         htmlUrl: String,
         cloneUrl: String,
         sshUrl: String
     ) {
         self.id = id
-        self.gitHubId = gitHubId
         self.htmlUrl = htmlUrl
         self.cloneUrl = cloneUrl
         self.sshUrl = sshUrl
