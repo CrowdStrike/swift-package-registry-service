@@ -52,7 +52,7 @@ Notice that the tags listed above are simply git tags. They can be whatever the 
 author wants them to be: "1.2.3", "v1.2.3", "version_1.2.3", or whatever.
 
 The [Swift Package Registry Service Specification](https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#2-definitions),
-on the other hand, specifies that its versions MUST be semantic verions, as defined by
+on the other hand, specifies that its versions MUST be semantic versions, as defined by
 the [Semantic Versioning 2.0.0 spec](https://semver.org/). This spec has a regular
 expression associate with it which explicitly defines how a Semantic Version must
 be parsed. That means that:
