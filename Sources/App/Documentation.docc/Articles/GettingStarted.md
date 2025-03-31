@@ -53,7 +53,7 @@ Now you should see a directory created called `.sprsCache` and a `db.sqlite` fil
 ```
 $ ls -l .sprsCache
 total 48
--rw-r--r--  1 ehyche  staff  24576 Mar 24 14:27 db.sqlite
+-rw-r--r--  1 <your-username>  staff  24576 Mar 24 14:27 db.sqlite
 ```
 
 ## Running the service from the command line
@@ -208,7 +208,7 @@ Once the build has succeeded and the server started, you should see something li
 If you see a message something like this in the Xcode console:
 
 ```
-[ WARNING ] No custom working directory set for this scheme, using /Users/ehyche/Library/Developer/Xcode/DerivedData/swift-package-registry-service-github-bwqdugfplzkkyueszneqimmdhxqo/Build/Products/Debug (Vapor/DirectoryConfiguration.swift:57)
+[ WARNING ] No custom working directory set for this scheme, using /Users/<your-username>/Library/Developer/Xcode/DerivedData/swift-package-registry-service-github-bwqdugfplzkkyueszneqimmdhxqo/Build/Products/Debug (Vapor/DirectoryConfiguration.swift:57)
 ```
 
 then you have forgotten to set the Custom Working Directory in Step 10 above.
