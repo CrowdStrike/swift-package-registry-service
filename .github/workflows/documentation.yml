@@ -58,8 +58,8 @@ jobs:
                 --output-path docs-out/"$tag" \
                 --transform-for-static-hosting \
                 --hosting-base-path /swift-package-registry-service/"$tag" \
-                && echo "✅ Documentation generated for swift-package-registry-servic @ "$tag" release." \
-                || echo "⚠️ Documentation skipped for swift-package-registry-servic @ "$tag".";
+                && echo "✅ Documentation generated for swift-package-registry-service @ "$tag" release." \
+                || echo "⚠️ Documentation skipped for swift-package-registry-service @ "$tag".";
             fi;
           done
 
