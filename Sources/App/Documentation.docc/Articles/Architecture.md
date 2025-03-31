@@ -6,7 +6,7 @@ This article describes the architecture of the Swift Package Registry Service.
 
 Visually, the architecture can be described as:
 
-![High-Level Architecture](../Resources/HighLevelArchitecture.png)
+![Image of Service High-Level Architecture](HighLevelArchitecture)
 
 Each of the components above are the following:
 
