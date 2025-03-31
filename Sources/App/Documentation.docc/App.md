@@ -1,7 +1,6 @@
-# Swift Package Registry Service
+# ``App``
 
-The Swift Package Registry Service is a Vapor-based web service which 
-implements the Swift Package Registry Service Specification by proxying and caching the Github API.
+The Swift Package Registry Service is a Vapor-based web service which implements the Swift Package Registry Service Specification by proxying and caching the Github API.
 
 ## References
 
@@ -9,6 +8,8 @@ implements the Swift Package Registry Service Specification by proxying and cach
 * [Github API](https://docs.github.com/en/rest?apiVersion=2022-11-28)
 
 ## Topics
+
+### Essentials
 
 - <doc:GettingStarted>
 - <doc:GithubAPI>
