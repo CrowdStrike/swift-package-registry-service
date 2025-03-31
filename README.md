@@ -39,7 +39,7 @@ Once the build has succeeded and the server started, you should see something li
 If you see a message something like this in the Xcode console:
 
 ```
-[ WARNING ] No custom working directory set for this scheme, using /Users/ehyche/Library/Developer/Xcode/DerivedData/swift-package-registry-service-github-bwqdugfplzkkyueszneqimmdhxqo/Build/Products/Debug (Vapor/DirectoryConfiguration.swift:57)
+[ WARNING ] No custom working directory set for this scheme, using /Users/<your-username>/Library/Developer/Xcode/DerivedData/swift-package-registry-service-github-bwqdugfplzkkyueszneqimmdhxqo/Build/Products/Debug (Vapor/DirectoryConfiguration.swift:57)
 ```
 
 then you have forgotten to set the Custom Working Directory in Step 10 above.
