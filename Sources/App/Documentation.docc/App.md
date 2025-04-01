@@ -12,6 +12,8 @@ The Swift Package Registry Service is a Vapor-based web service which implements
 ### Essentials
 
 - <doc:GettingStarted>
+- <doc:ConfiguringSPM>
 - <doc:GithubAPI>
 - <doc:Architecture>
+- <doc:SpecificationSupport>
 - <doc:ToDoList>
