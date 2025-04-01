@@ -9,9 +9,9 @@ This is an implementation of the Swift Package Registry Service which proxies th
 
 The documentation for the Swift Package Registry Service can be found in Github Pages:
 
-[Documentation](https://crowdstrike.github.io/swift-package-registry-service/documentation/app)
+[Documentation](https://crowdstrike.github.io/swift-package-registry-service/main/documentation/app)
 
-Please see the [Getting Started](https://crowdstrike.github.io/swift-package-registry-service/documentation/app/gettingstarted) article for setup information.
+Please see the [Getting Started](https://crowdstrike.github.io/swift-package-registry-service/main/documentation/app/gettingstarted) article for setup information.
 
 ## Support Statement
 
