@@ -3,6 +3,12 @@
 name: Documentation
 
 on:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -49,6 +55,7 @@ jobs:
                 --allow-writing-to-directory docs-out/"$tag" \
                 generate-documentation \
                 --target App \
+                --disable-indexing \
                 --output-path docs-out/"$tag" \
                 --transform-for-static-hosting \
                 --hosting-base-path /swift-package-registry-service/"$tag" \
