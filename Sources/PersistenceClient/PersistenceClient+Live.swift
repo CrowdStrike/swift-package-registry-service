@@ -33,13 +33,7 @@ extension PersistenceClient {
             },
             readSourceArchive: { owner, repo, version in
                 let cachedFileName = zipBallFileName(cacheRootDirectory: cacheRootDirectory, owner: owner, repo: repo, version: version)
-                let byteBuffer: ByteBuffer
-                do {
-                    byteBuffer = try await fileClient.readFile(path: cachedFileName)
-                } catch {
-                    return nil
-                }
-                return .init(fileName: cachedFileName, byteBuffer: byteBuffer)
+                return .init(fileName: cachedFileName)
             },
             saveSourceArchive: { owner, repo, version, zipBallURL in
                 // Fetch the entire zipBall into memory. TODO: Improve this by passing chunk-by-chunk into FileClient
