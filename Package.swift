@@ -21,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/fluent.git", from: "4.12.0"),
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.8.0"),
         .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.3"),
+        .package(url: "https://github.com/apple/swift-system.git", from: "1.4.2"),
     ],
     targets: [
         .executableTarget(
@@ -31,6 +32,7 @@ let package = Package(
                 .product(name: "Semaphore", package: "Semaphore"),
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
+                .product(name: "SystemPackage", package: "swift-system"),
                 .target(name: "ChecksumClientImpl"),
                 .target(name: "GithubAPIClientImpl"),
                 .target(name: "APIUtilities"),
