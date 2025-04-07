@@ -67,6 +67,7 @@ let package = Package(
                 .target(name: "GithubOpenAPI"),
                 .target(name: "ClientAuthMiddleware"),
                 .target(name: "ClientLoggingMiddleware"),
+                .target(name: "ClientStaticHeadersMiddleware"),
             ]
         ),
         .target(
@@ -88,6 +89,13 @@ let package = Package(
                 .product(name: "HTTPTypes", package: "swift-http-types"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "Vapor", package: "vapor"),
+            ]
+        ),
+        .target(
+            name: "ClientStaticHeadersMiddleware",
+            dependencies: [
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
             ]
         ),
         .target(
