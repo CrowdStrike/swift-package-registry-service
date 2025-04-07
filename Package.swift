@@ -10,7 +10,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.113.2"),
         .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.7.1"),
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.8.1"),
-        .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.2"),
+        .package(url: "https://github.com/swift-server/swift-openapi-async-http-client.git", from: "1.1.0"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.8.1"),
         .package(url: "https://github.com/apple/swift-http-types", from: "1.3.1"),
         .package(url: "https://github.com/swift-server/async-http-client", from: "1.25.2"),
@@ -42,7 +42,6 @@ let package = Package(
             name: "GithubOpenAPI",
             dependencies: [
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
-                .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
             ],
             plugins: [
                 .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
@@ -62,7 +61,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
-                .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
+                .product(name: "OpenAPIAsyncHTTPClient", package: "swift-openapi-async-http-client"),
                 .target(name: "GithubAPIClient"),
                 .target(name: "GithubOpenAPI"),
                 .target(name: "ClientAuthMiddleware"),

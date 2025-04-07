@@ -5,18 +5,18 @@ import Foundation
 import GithubOpenAPI
 import GithubAPIClient
 import OpenAPIRuntime
-import OpenAPIURLSession
+import OpenAPIAsyncHTTPClient
 
 extension GithubAPIClient {
 
     public static func live(
-        clientTransport: ClientTransport = URLSessionTransport(),
+        clientTransport: ClientTransport = AsyncHTTPClientTransport(),
         githubAPIToken: String? = ProcessInfo.processInfo.environment["GITHUB_API_TOKEN"]
     ) -> Self {
         var middlewares: [ClientMiddleware] = [
             ClientStaticHeadersMiddleware(
                 headers: [
-                    .userAgent: "GithubAPIClient GithubOpenAPI/1.1.4 URLSessionTransport/1.1.0"
+                    .userAgent: "GithubAPIClient GithubOpenAPI/1.1.4 AsyncHTTPClientTransport/1.1.0"
                 ]
             ),
             ClientLoggingMiddleware(bodyLoggingPolicy: .never),
