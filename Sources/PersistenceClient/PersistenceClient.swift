@@ -39,8 +39,9 @@ public struct PersistenceClient: Sendable {
         return []
     }
     /// Save the manfests for a single release for the specified owner, repo, and version
-    public var saveManifests: @Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> Void = { _, _, _, _ in
+    public var saveManifests: @Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> [Manifest] = { _, _, _, _ in
         reportIssue("\(Self.self).saveManifests not implemented")
+        return []
     }
 }
 

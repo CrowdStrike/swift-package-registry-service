@@ -77,44 +77,30 @@ extension PersistenceClient {
                 } catch {
                     return []
                 }
-                let manifestDirectory = try JSONDecoder().decode(ManifestDirectory.self, from: byteBuffer)
+                var manifestDirectory = try JSONDecoder().decode(ManifestDirectory.self, from: byteBuffer)
                 guard !manifestDirectory.manifests.isEmpty else {
                     return []
                 }
-                // Read in the manifest files in parallel
-                return try await withThrowingTaskGroup(of: Manifest.self, returning: [Manifest].self) { group in
-                    manifestDirectory.manifests.forEach { manifest in
-                        group.addTask {
-                            let manifestFileName = Self.manifestFileName(
-                                cacheRootDirectory: cacheRootDirectory,
-                                owner: owner,
-                                repo: repo,
-                                version: version,
-                                manifest: manifest
-                            )
-                            let contents = try await fileClient.readFile(path: manifestFileName)
-                            return Manifest(
-                                fileName: manifest.fileName,
-                                swiftVersion: manifest.swiftVersion,
-                                swiftToolsVersion: manifest.swiftToolsVersion,
-                                contents: contents
-                            )
-                        }
-                    }
-                    var manifests = [Manifest]()
-                    for try await manifest in group {
-                        manifests.append(manifest)
-                    }
-                    return manifests
+                // Set the cachedFilePath in each manifest
+                for i in 0..<manifestDirectory.manifests.count {
+                    manifestDirectory.manifests[i].cachedFilePath = Self.manifestFileName(
+                        cacheRootDirectory: cacheRootDirectory,
+                        owner: owner,
+                        repo: repo,
+                        version: version,
+                        manifestFileName: manifestDirectory.manifests[i].fileName
+                    )
                 }
+
+                return manifestDirectory.manifests
             },
             saveManifests: { owner, repo, version, manifests in
-                guard !manifests.isEmpty else { return }
+                guard !manifests.isEmpty else { return [] }
                 guard manifests.allSatisfy(\.hasContents) else {
                     throw PersistenceClientError.manifestHasNoContents
                 }
                 // Save the manifest file contents out in parallel
-                try await withThrowingTaskGroup(of: Void.self) { group in
+                let savedManifests = try await withThrowingTaskGroup(of: Manifest.self, returning: [Manifest].self) { group in
                     manifests.forEach { manifest in
                         guard let contents = manifest.contents else { return }
                         group.addTask {
@@ -123,12 +109,17 @@ extension PersistenceClient {
                                 owner: owner,
                                 repo: repo,
                                 version: version,
-                                manifest: manifest
+                                manifestFileName: manifest.fileName
                             )
                             try await fileClient.writeFile(buffer: contents, path: filePath)
+                            return manifest.withCachedFilePath(filePath)
                         }
                     }
-                    try await group.waitForAll()
+                    var manifestsToReturn = [Manifest]()
+                    for try await manifestToReturn in group {
+                        manifestsToReturn.append(manifestToReturn)
+                    }
+                    return manifestsToReturn
                 }
                 // Serialize the manifest directory file
                 let encoder = JSONEncoder()
@@ -142,6 +133,8 @@ extension PersistenceClient {
                 )
                 let byteBuffer = try encoder.encodeAsByteBuffer(directory, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: byteBuffer, path: manifestDirectoryFileName)
+
+                return savedManifests
             }
         )
     }
@@ -171,10 +164,10 @@ extension PersistenceClient {
         owner: String,
         repo: String,
         version: Version,
-        manifest: Manifest
+        manifestFileName: String
     ) -> String {
         let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
-        return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/\(version)/\(manifest.fileName)"
+        return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/\(version)/\(manifestFileName)"
     }
 
     private static func fetchZipBall(
