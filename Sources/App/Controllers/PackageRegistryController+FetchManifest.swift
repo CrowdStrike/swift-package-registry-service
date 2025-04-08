@@ -6,7 +6,7 @@ import Vapor
 
 extension PackageRegistryController {
 
-    func fetchManifest(req: Request) async throws -> FetchedManifest {
+    func fetchManifest(req: Request) async throws -> Response {
         let packageScope = try req.packageScope
         let packageName = try req.packageName
         let packageVersion = try req.packageVersion
@@ -22,47 +22,69 @@ extension PackageRegistryController {
         // Sync the package manifests against the cache
         let manifests = try await manifestsActor.loadData(owner: owner, repo: repo, version: version, logger: req.logger)
 
+        let swiftMediaType = HTTPMediaType(type: "text", subType: "x-swift")
+        let logger = req.logger
+
         if let swiftVersion = queryParams.swiftVersion {
             // We have a swift-version query parameter. Check if we have a manifest with this version
             guard let manifestForOurVersion = manifests.first(where: { $0.swiftVersion == swiftVersion }) else {
                 // The caller requested a manifest with a swift-version which does not exist
                 // in the repo. So per the spec, we return a 303 See Other with a Location
                 // header pointing to the main Package.swift
-                return .init(response: .seeOther)
+                var headers = HTTPHeaders()
+                headers.add(name: .location, value: try req.unversionedManifestURL)
+                return .init(status: .seeOther, headers: headers)
             }
-            guard let contents = manifestForOurVersion.contents, contents.readableBytes > 0 else {
-                throw Abort(.internalServerError, title: "Cached manifest is empty.")
+            // Make sure we have a cachedFilePath for this manifest
+            guard let cachedFilePath = manifestForOurVersion.cachedFilePath, !cachedFilePath.isEmpty else {
+                throw Abort(.internalServerError, title: "No cached manifest file.")
             }
-            return .init(
-                response: .ok(
-                    .init(
-                        allManifestFiles: [],
-                        fileName: manifestForOurVersion.fileName,
-                        value: .init(buffer: contents)
-                    )
-                )
-            )
+
+            let response = try await req.fileio.asyncStreamFile(at: cachedFilePath, mediaType: swiftMediaType) { result in
+                switch result {
+                case .success:
+                    logger.debug("Successfully streamed manifest file to response.")
+                case .failure(let error):
+                    logger.error("Error streaming manifest file to response: \(error)")
+                }
+            }
+            response.headers.add(name: .contentVersion, value: SwiftRegistryAcceptHeader.Version.v1.rawValue)
+            response.headers.add(name: .contentDisposition, value: "attachment; filename=\"\(manifestForOurVersion.fileName)\"")
+
+            return response
         } else {
             // We don't have a ?swift-version query parameter, so this
             // is a request for the base Package.swift.
-            guard
-                let unversionedManifest = manifests.first(where: \.isUnversioned),
-                let unversionedManifestContents = unversionedManifest.contents,
-                unversionedManifestContents.readableBytes > 0
-            else {
+            guard let unversionedManifest = manifests.first(where: \.isUnversioned) else {
                 throw Abort(.notFound, title: "Package.swift not found in repository.")
             }
+            // Make sure we have a cachedFilePath for this manifest
+            guard let cachedFilePath = unversionedManifest.cachedFilePath, !cachedFilePath.isEmpty else {
+                throw Abort(.internalServerError, title: "No cached manifest file for Package.swift.")
+            }
+
+            let response = try await req.fileio.asyncStreamFile(at: cachedFilePath, mediaType: swiftMediaType) { result in
+                switch result {
+                case .success:
+                    logger.debug("Successfully streamed manifest file to response.")
+                case .failure(let error):
+                    logger.error("Error streaming manifest file to response: \(error)")
+                }
+            }
+            response.headers.add(name: .contentVersion, value: SwiftRegistryAcceptHeader.Version.v1.rawValue)
+            response.headers.add(name: .contentDisposition, value: "attachment; filename=\"\(unversionedManifest.fileName)\"")
+
+            // If we have versioned manifests in the same repository,
+            // then we need to generate a Link header.
             let versionedManifests = manifests.filter(\.hasVersion)
-            
-            return .init(
-                response: .ok(
-                    .init(
-                        allManifestFiles: versionedManifests.map(\.asManifestFile),
-                        fileName: unversionedManifest.fileName,
-                        value: .init(buffer: unversionedManifestContents)
-                    )
-                )
-            )
+            if !versionedManifests.isEmpty {
+                let linkHeader = try versionedManifests
+                    .map { try $0.linkHeaderValue(for: req) }
+                    .joined(separator: ", ")
+                response.headers.add(name: .link, value: linkHeader)
+            }
+
+            return response
         }
     }
 
@@ -84,84 +106,6 @@ extension PackageRegistryController {
     }
 }
 
-extension GithubAPIClient.GetContent.Output {
-
-    func toFetchedManifest(allManifestFiles: [Manifest.File] = []) throws -> FetchedManifest {
-        switch self {
-        case .ok(let okBody):
-            let file = try okBody.file
-            return .init(
-                response: .ok(
-                    .init(
-                        allManifestFiles: allManifestFiles,
-                        fileName: file.name,
-                        value: try file.decodedContent
-                    )
-                )
-            )
-        case .notFound:
-            return .init(response: .seeOther)
-        default:
-            throw Abort(httpResponseStatus)
-        }
-    }
-
-    var okBody: GithubAPIClient.GetContent.OKBody {
-        get throws {
-            switch self {
-            case .ok(let okBody):
-                return okBody
-            default:
-                throw Abort(httpResponseStatus)
-            }
-        }
-    }
-
-    var httpResponseStatus: HTTPResponseStatus {
-        switch self {
-        case .ok: .ok
-        case .found: .found
-        case .notModified: .notModified
-        case .forbidden: .forbidden
-        case .notFound: .notFound
-        case .other(let httpResponse): .init(statusCode: httpResponse.status.code)
-        }
-    }
-}
-
-extension GithubAPIClient.GetContent.OKBody {
-
-    var file: File {
-        get throws {
-            switch self {
-            case .file(let fileStruct):
-                return fileStruct
-            default:
-                throw Abort(.internalServerError, title: "Unexpected content returned from Github API.")
-            }
-        }
-    }
-}
-
-extension GithubAPIClient.GetContent.OKBody.File {
-
-    var decodedContent: String {
-        get throws {
-            guard encoding == "base64" else {
-                throw Abort(.internalServerError, title: "Unexpected encoding returned from Github API.")
-            }
-            let contentMinusLinefeeds = content.replacingOccurrences(of: "\n", with: "")
-            guard
-                let decodedData = Data(base64Encoded: contentMinusLinefeeds),
-                let decodedString = String(data: decodedData, encoding: .utf8)
-            else {
-                throw Abort(.internalServerError, title: "Could not Base64-decode content returned from Github API.")
-            }
-            return decodedString
-        }
-    }
-}
-
 extension PersistenceClient.Manifest {
 
     var asManifestFile: Manifest.File {
@@ -178,5 +122,24 @@ extension PersistenceClient.Manifest {
         case .some(let version):
             .versioned(version)
         }
+    }
+
+    var queryArguments: String {
+        switch swiftVersion {
+        case .none: ""
+        case .some(let swiftVersion): "?swift-version=\(swiftVersion)"
+        }
+    }
+
+
+    func linkHeaderValue(for request: Request) throws -> String {
+        var components = [String]()
+        components.append("<\(try request.fetchPackageMetadataURL)/Package.swift\(queryArguments)>")
+        components.append("rel=\"alternate\"")
+        components.append("filename=\"\(fileName)\"")
+        if let swiftToolsVersion {
+            components.append("swift-tools-version=\"\(swiftToolsVersion)\"")
+        }
+        return components.joined(separator: "; ")
     }
 }

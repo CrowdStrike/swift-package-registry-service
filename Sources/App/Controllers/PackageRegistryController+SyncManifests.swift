@@ -71,11 +71,12 @@ extension PackageRegistryController {
             return manifests
         }
         logger.debug("Fetched \(fetchedManifests.count) manifests for \"\(owner).\(repo)\" version: \(version)")
-        // Persist these manifests
-        try await persistenceClient.saveManifests(owner: owner, repo: repo, version: version, manifests: fetchedManifests)
-        logger.debug("Saved \(fetchedManifests.count) manifests to cache for \"\(owner).\(repo)\" version: \(version)")
+        // Persist these manifests. For each of these, the cachedFilePath is now filled in.
+        let savedManifests = try await persistenceClient.saveManifests(owner: owner, repo: repo, version: version, manifests: fetchedManifests)
+        logger.debug("Saved \(savedManifests.count) manifests to cache for \"\(owner).\(repo)\" version: \(version)")
 
-        return fetchedManifests
+        // Return the saved manifests (that include the cachedFilePath), but strip out the contents
+        return savedManifests.map(\.withoutContents)
     }
 
     private static func fetchManifest(
@@ -100,5 +101,63 @@ extension PackageRegistryController {
             swiftToolsVersion: swiftToolsVersion,
             contents: ByteBuffer(string: fileContents)
         )
+    }
+}
+
+private extension GithubAPIClient.GetContent.Output {
+
+    var okBody: GithubAPIClient.GetContent.OKBody {
+        get throws {
+            switch self {
+            case .ok(let okBody):
+                return okBody
+            default:
+                throw Abort(httpResponseStatus)
+            }
+        }
+    }
+
+    var httpResponseStatus: HTTPResponseStatus {
+        switch self {
+        case .ok: .ok
+        case .found: .found
+        case .notModified: .notModified
+        case .forbidden: .forbidden
+        case .notFound: .notFound
+        case .other(let httpResponse): .init(statusCode: httpResponse.status.code)
+        }
+    }
+}
+
+private extension GithubAPIClient.GetContent.OKBody {
+
+    var file: File {
+        get throws {
+            switch self {
+            case .file(let fileStruct):
+                return fileStruct
+            default:
+                throw Abort(.internalServerError, title: "Unexpected content returned from Github API.")
+            }
+        }
+    }
+}
+
+private extension GithubAPIClient.GetContent.OKBody.File {
+
+    var decodedContent: String {
+        get throws {
+            guard encoding == "base64" else {
+                throw Abort(.internalServerError, title: "Unexpected encoding returned from Github API.")
+            }
+            let contentMinusLinefeeds = content.replacingOccurrences(of: "\n", with: "")
+            guard
+                let decodedData = Data(base64Encoded: contentMinusLinefeeds),
+                let decodedString = String(data: decodedData, encoding: .utf8)
+            else {
+                throw Abort(.internalServerError, title: "Could not Base64-decode content returned from Github API.")
+            }
+            return decodedString
+        }
     }
 }
