@@ -1,4 +1,5 @@
 import APIUtilities
+import Fluent
 import Vapor
 
 /// This actor accomplishes two purposes:
@@ -10,7 +11,7 @@ import Vapor
 /// with same `owner`, `repo`, and `version` for both requests, then the second one must will wait on the first one
 /// to complete before it completes.
 actor MemoryCacheActor<T: Equatable & Sendable & Codable> {
-    typealias DataLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version, _ logger: Logger) async throws -> T
+    typealias DataLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version, _ fileIO: FileIO, _ database: any Database, _ logger: Logger) async throws -> T
 
     private var memoryCache: [String: ReleaseMetadataState] = [:]
     private let dataLoader: DataLoader
@@ -19,7 +20,14 @@ actor MemoryCacheActor<T: Equatable & Sendable & Codable> {
         self.dataLoader = dataLoader
     }
 
-    func loadData(owner: String, repo: String, version: Version, logger: Logger) async throws -> T {
+    func loadData(
+        owner: String,
+        repo: String,
+        version: Version,
+        fileIO: FileIO,
+        database: any Database,
+        logger: Logger
+    ) async throws -> T {
         let cacheKey = Self.makeCacheKey(owner, repo, version)
         if let state = memoryCache[cacheKey] {
             switch state {
@@ -33,7 +41,7 @@ actor MemoryCacheActor<T: Equatable & Sendable & Codable> {
         }
 
         let task = Task {
-            try await dataLoader(owner, repo, version, logger)
+            try await dataLoader(owner, repo, version, fileIO, database, logger)
         }
 
         memoryCache[cacheKey] = .loading(task)

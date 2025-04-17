@@ -33,16 +33,6 @@ public struct PersistenceClient: Sendable {
     public var saveReleaseMetadata: @Sendable (_ owner: String, _ repo: String, _ metadata: ReleaseMetadata) async throws -> Void = { _, _, _ in
         reportIssue("\(Self.self).saveReleaseMetadata not implemented")
     }
-    /// Read the manifests for a single release for the specified owner, repo, and version
-    public var readManifests: @Sendable (_ owner: String, _ repo: String, _ version: Version) async throws -> [Manifest] = { _, _, _ in
-        reportIssue("\(Self.self).readManifests not implemented")
-        return []
-    }
-    /// Save the manfests for a single release for the specified owner, repo, and version
-    public var saveManifests: @Sendable (_ owner: String, _ repo: String, _ version: Version, _ manifests: [Manifest]) async throws -> [Manifest] = { _, _, _, _ in
-        reportIssue("\(Self.self).saveManifests not implemented")
-        return []
-    }
 }
 
 public enum PersistenceClientError: Swift.Error {

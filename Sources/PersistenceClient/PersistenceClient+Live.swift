@@ -62,79 +62,6 @@ extension PersistenceClient {
                 encoder.outputFormatting = .default
                 let byteBuffer = try encoder.encodeAsByteBuffer(metadata, allocator: byteBufferAllocator)
                 try await fileClient.writeFile(buffer: byteBuffer, path: cachedFileName)
-            },
-            readManifests: { owner, repo, version in
-                // Read and deserialize the manifest directory file. This could fail if we haven't cached anything yet.
-                let manifestDirectoryFileName = Self.manifestDirectoryFileName(
-                    cacheRootDirectory: cacheRootDirectory,
-                    owner: owner,
-                    repo: repo,
-                    version: version
-                )
-                let byteBuffer: ByteBuffer
-                do {
-                    byteBuffer = try await fileClient.readFile(path: manifestDirectoryFileName)
-                } catch {
-                    return []
-                }
-                var manifestDirectory = try JSONDecoder().decode(ManifestDirectory.self, from: byteBuffer)
-                guard !manifestDirectory.manifests.isEmpty else {
-                    return []
-                }
-                // Set the cachedFilePath in each manifest
-                for i in 0..<manifestDirectory.manifests.count {
-                    manifestDirectory.manifests[i].cachedFilePath = Self.manifestFileName(
-                        cacheRootDirectory: cacheRootDirectory,
-                        owner: owner,
-                        repo: repo,
-                        version: version,
-                        manifestFileName: manifestDirectory.manifests[i].fileName
-                    )
-                }
-
-                return manifestDirectory.manifests
-            },
-            saveManifests: { owner, repo, version, manifests in
-                guard !manifests.isEmpty else { return [] }
-                guard manifests.allSatisfy(\.hasContents) else {
-                    throw PersistenceClientError.manifestHasNoContents
-                }
-                // Save the manifest file contents out in parallel
-                let savedManifests = try await withThrowingTaskGroup(of: Manifest.self, returning: [Manifest].self) { group in
-                    manifests.forEach { manifest in
-                        guard let contents = manifest.contents else { return }
-                        group.addTask {
-                            let filePath = Self.manifestFileName(
-                                cacheRootDirectory: cacheRootDirectory,
-                                owner: owner,
-                                repo: repo,
-                                version: version,
-                                manifestFileName: manifest.fileName
-                            )
-                            try await fileClient.writeFile(buffer: contents, path: filePath)
-                            return manifest.withCachedFilePath(filePath)
-                        }
-                    }
-                    var manifestsToReturn = [Manifest]()
-                    for try await manifestToReturn in group {
-                        manifestsToReturn.append(manifestToReturn)
-                    }
-                    return manifestsToReturn
-                }
-                // Serialize the manifest directory file
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = .default
-                let directory = ManifestDirectory(manifests: manifests)
-                let manifestDirectoryFileName = Self.manifestDirectoryFileName(
-                    cacheRootDirectory: cacheRootDirectory,
-                    owner: owner,
-                    repo: repo,
-                    version: version
-                )
-                let byteBuffer = try encoder.encodeAsByteBuffer(directory, allocator: byteBufferAllocator)
-                try await fileClient.writeFile(buffer: byteBuffer, path: manifestDirectoryFileName)
-
-                return savedManifests
             }
         )
     }
@@ -152,22 +79,6 @@ extension PersistenceClient {
     private static func releaseMetadataFileName(cacheRootDirectory: String, owner: String, repo: String, version: Version) -> String {
         let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
         return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/\(version)/releaseMetadata.json"
-    }
-
-    private static func manifestDirectoryFileName(cacheRootDirectory: String, owner: String, repo: String, version: Version) -> String {
-        let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
-        return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/\(version)/manifests.json"
-    }
-
-    private static func manifestFileName(
-        cacheRootDirectory: String,
-        owner: String,
-        repo: String,
-        version: Version,
-        manifestFileName: String
-    ) -> String {
-        let cacheRootDirectoryWithSlash = cacheRootDirectory.ending(with: "/")
-        return "\(cacheRootDirectoryWithSlash)\(owner)/\(repo)/\(version)/\(manifestFileName)"
     }
 
     private static func fetchZipBall(
