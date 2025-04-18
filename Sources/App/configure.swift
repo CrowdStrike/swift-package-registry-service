@@ -1,4 +1,5 @@
 import ChecksumClient
+import Dependencies
 import Fluent
 import FluentSQLiteDriver
 import GithubAPIClient
@@ -9,6 +10,7 @@ import Vapor
 public func configure(
     _ app: Application,
     environment: Environment,
+    cacheRootDirectory: String,
     githubAPIClient: GithubAPIClient,
     checksumClient: ChecksumClient,
     httpStreamClient: HTTPStreamClient,
@@ -16,6 +18,7 @@ public func configure(
     logger: Logger,
     githubAPIToken: String,
     sqliteConfiguration: SQLiteConfiguration,
+    uuidGenerator: UUIDGenerator,
     clientSupportsPagination: Bool = false
 ) async throws {
     // Clear all default middleware (then, add back route logging)
@@ -28,6 +31,7 @@ public func configure(
     app.databases.use(.sqlite(sqliteConfiguration), as: .sqlite)
     // Add migrations
     app.migrations.add(CreateRepositories())
+    app.migrations.add(CreateManifests())
     if sqliteConfiguration.storage.isMemory {
         try await app.autoMigrate()
     }
@@ -39,6 +43,8 @@ public func configure(
 
     let controller = PackageRegistryController(
         serverURLString: serverURLString,
+        cacheRootDirectory: cacheRootDirectory,
+        uuidGenerator: uuidGenerator,
         clientSupportsPagination: clientSupportsPagination,
         githubAPIToken: githubAPIToken,
         githubAPIClient: githubAPIClient,

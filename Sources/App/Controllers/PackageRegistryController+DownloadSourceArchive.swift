@@ -22,7 +22,14 @@ extension PackageRegistryController {
 
         // Sync the release metadata. This sync fetches the source archive (zipBall)
         // from Github, caches it, and computes the checksum on it.
-        _ = try await releaseMetadataActor.loadData(owner: owner, repo: repo, version: version, logger: req.logger)
+        _ = try await releaseMetadataActor.loadData(
+            owner: owner,
+            repo: repo,
+            version: version,
+            fileIO: req.fileio,
+            database: req.db,
+            logger: req.logger
+        )
 
         // Once we sync the release metadata, then the source
         // archive should be cached. If it's not, that's an error.

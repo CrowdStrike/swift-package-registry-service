@@ -70,7 +70,7 @@ extension GithubAPIClient.GetContent.Output {
         repo: String,
         version: String,
         swiftVersion: String?,
-        manifests: [Manifest.FileName] = []
+        manifests: [APIUtilities.Manifest.FileName] = []
     ) -> String {
         manifests
             .filter { $0.swiftVersion != swiftVersion }

@@ -7,7 +7,7 @@ struct ManifestFileNameTests {
     @Test func manifestFileNames() throws {
         struct TestCase {
             let fileName: String
-            let expected: Manifest.FileName?
+            let expected: APIUtilities.Manifest.FileName?
         }
 
         let testCases: [TestCase] = [
@@ -21,7 +21,7 @@ struct ManifestFileNameTests {
             .init(fileName: "Package@swift-6.0.4.swift", expected: .versioned("6.0.4")),
         ]
 
-        let actualResults = try Manifest.fileNames(from: testCases.map(\.fileName))
+        let actualResults = try APIUtilities.Manifest.fileNames(from: testCases.map(\.fileName))
         #expect(actualResults == testCases.compactMap(\.expected))
     }
 }

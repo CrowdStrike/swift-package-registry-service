@@ -20,14 +20,21 @@ extension PackageRegistryController {
         let repo = packageName.value
 
         // Sync the package manifests against the cache
-        let manifests = try await manifestsActor.loadData(owner: owner, repo: repo, version: version, logger: req.logger)
+        let manifests = try await manifestsActor.loadData(
+            owner: owner,
+            repo: repo,
+            version: version,
+            fileIO: req.fileio,
+            database: req.db,
+            logger: req.logger
+        )
 
         let swiftMediaType = HTTPMediaType(type: "text", subType: "x-swift")
         let logger = req.logger
 
         if let swiftVersion = queryParams.swiftVersion {
             // We have a swift-version query parameter. Check if we have a manifest with this version
-            guard let manifestForOurVersion = manifests.first(where: { $0.swiftVersion == swiftVersion }) else {
+            guard let manifestForOurVersion = manifests.first(where: { $0.packageManifest.swiftVersion == swiftVersion }) else {
                 // The caller requested a manifest with a swift-version which does not exist
                 // in the repo. So per the spec, we return a 303 See Other with a Location
                 // header pointing to the main Package.swift
@@ -36,11 +43,19 @@ extension PackageRegistryController {
                 return .init(status: .seeOther, headers: headers)
             }
             // Make sure we have a cachedFilePath for this manifest
-            guard let cachedFilePath = manifestForOurVersion.cachedFilePath, !cachedFilePath.isEmpty else {
+            guard !manifestForOurVersion.cacheFileName.isEmpty else {
                 throw Abort(.internalServerError, title: "No cached manifest file.")
             }
+            // Get the full path to the manifest file
+            let cachedFilePath = Self.manifestFilePath(
+                cacheRootDirectory: cacheRootDirectory,
+                manifestFileName: manifestForOurVersion.cacheFileName
+            )
 
-            let response = try await req.fileio.asyncStreamFile(at: cachedFilePath, mediaType: swiftMediaType) { result in
+            let response = try await req.fileio.asyncStreamFile(
+                at: cachedFilePath,
+                mediaType: swiftMediaType
+            ) { result in
                 switch result {
                 case .success:
                     logger.debug("Successfully streamed manifest file to response.")
@@ -48,22 +63,36 @@ extension PackageRegistryController {
                     logger.error("Error streaming manifest file to response: \(error)")
                 }
             }
-            response.headers.add(name: .contentVersion, value: SwiftRegistryAcceptHeader.Version.v1.rawValue)
-            response.headers.add(name: .contentDisposition, value: "attachment; filename=\"\(manifestForOurVersion.fileName)\"")
+            response.headers.add(
+                name: .contentVersion,
+                value: SwiftRegistryAcceptHeader.Version.v1.rawValue
+            )
+            response.headers.add(
+                name: .contentDisposition,
+                value: "attachment; filename=\"\(manifestForOurVersion.packageManifest.fileName)\""
+            )
 
             return response
         } else {
             // We don't have a ?swift-version query parameter, so this
             // is a request for the base Package.swift.
-            guard let unversionedManifest = manifests.first(where: \.isUnversioned) else {
+            guard let unversionedManifest = manifests.first(where: \.packageManifest.isUnversioned) else {
                 throw Abort(.notFound, title: "Package.swift not found in repository.")
             }
             // Make sure we have a cachedFilePath for this manifest
-            guard let cachedFilePath = unversionedManifest.cachedFilePath, !cachedFilePath.isEmpty else {
+            guard !unversionedManifest.cacheFileName.isEmpty else {
                 throw Abort(.internalServerError, title: "No cached manifest file for Package.swift.")
             }
+            // Get the full path to the manifest file
+            let cachedFilePath = Self.manifestFilePath(
+                cacheRootDirectory: cacheRootDirectory,
+                manifestFileName: unversionedManifest.cacheFileName
+            )
 
-            let response = try await req.fileio.asyncStreamFile(at: cachedFilePath, mediaType: swiftMediaType) { result in
+            let response = try await req.fileio.asyncStreamFile(
+                at: cachedFilePath,
+                mediaType: swiftMediaType
+            ) { result in
                 switch result {
                 case .success:
                     logger.debug("Successfully streamed manifest file to response.")
@@ -71,12 +100,18 @@ extension PackageRegistryController {
                     logger.error("Error streaming manifest file to response: \(error)")
                 }
             }
-            response.headers.add(name: .contentVersion, value: SwiftRegistryAcceptHeader.Version.v1.rawValue)
-            response.headers.add(name: .contentDisposition, value: "attachment; filename=\"\(unversionedManifest.fileName)\"")
+            response.headers.add(
+                name: .contentVersion,
+                value: SwiftRegistryAcceptHeader.Version.v1.rawValue
+            )
+            response.headers.add(
+                name: .contentDisposition,
+                value: "attachment; filename=\"\(unversionedManifest.packageManifest.fileName)\""
+            )
 
             // If we have versioned manifests in the same repository,
             // then we need to generate a Link header.
-            let versionedManifests = manifests.filter(\.hasVersion)
+            let versionedManifests = manifests.filter(\.packageManifest.hasVersion)
             if !versionedManifests.isEmpty {
                 let linkHeader = try versionedManifests
                     .map { try $0.linkHeaderValue(for: req) }
@@ -106,17 +141,17 @@ extension PackageRegistryController {
     }
 }
 
-extension PersistenceClient.Manifest {
+extension CachedPackageManifest {
 
-    var asManifestFile: Manifest.File {
+    var asManifestFile: APIUtilities.Manifest.File {
         .init(
             fileName: asManifestFileName,
-            swiftToolsVersion: swiftToolsVersion
+            swiftToolsVersion: packageManifest.swiftToolsVersion
         )
     }
 
-    var asManifestFileName: Manifest.FileName {
-        switch swiftVersion {
+    var asManifestFileName: APIUtilities.Manifest.FileName {
+        switch packageManifest.swiftVersion {
         case .none:
             .unversioned
         case .some(let version):
@@ -125,7 +160,7 @@ extension PersistenceClient.Manifest {
     }
 
     var queryArguments: String {
-        switch swiftVersion {
+        switch packageManifest.swiftVersion {
         case .none: ""
         case .some(let swiftVersion): "?swift-version=\(swiftVersion)"
         }
@@ -136,10 +171,8 @@ extension PersistenceClient.Manifest {
         var components = [String]()
         components.append("<\(try request.fetchPackageMetadataURL)/Package.swift\(queryArguments)>")
         components.append("rel=\"alternate\"")
-        components.append("filename=\"\(fileName)\"")
-        if let swiftToolsVersion {
-            components.append("swift-tools-version=\"\(swiftToolsVersion)\"")
-        }
+        components.append("filename=\"\(packageManifest.fileName)\"")
+        components.append("swift-tools-version=\"\(packageManifest.swiftToolsVersion)\"")
         return components.joined(separator: "; ")
     }
 }

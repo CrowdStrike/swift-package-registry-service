@@ -1,7 +1,7 @@
 import APIUtilities
-import ChecksumClient
+import Dependencies
+import Fluent
 import GithubAPIClient
-import PersistenceClient
 import Vapor
 
 extension PackageRegistryController {
@@ -10,16 +10,24 @@ extension PackageRegistryController {
         owner: String,
         repo: String,
         version: Version,
-        persistenceClient: PersistenceClient,
+        cacheRootDirectory: String,
+        uuidGenerator: UUIDGenerator,
         githubAPIClient: GithubAPIClient,
         tagsActor: TagsActor,
+        databaseActor: DatabaseActor,
+        database: any Database,
+        fileIO: FileIO,
         logger: Logger
-    ) async throws ->  [PersistenceClient.Manifest] {
-        // Attempt to read in all of the package manifests from cache
-        let manifests = try await persistenceClient.readManifests(owner: owner, repo: repo, version: version)
+    ) async throws ->  [CachedPackageManifest] {
+        // Attempt to read in all of the package manifests from db
+        let manifests = try await Manifest.query(on: database)
+            .filter(\.$packageScope == owner)
+            .filter(\.$packageName == repo)
+            .filter(\.$packageVersion == version.description)
+            .all()
         guard manifests.isEmpty else {
             logger.debug("Found \(manifests.count) cached manifests for \"\(owner).\(repo)\" version: \(version)")
-            return manifests
+            return manifests.map(\.asCachedPackageManifest)
         }
         logger.debug("Did not find any cached manifests for \"\(owner).\(repo)\" version: \(version)")
 
@@ -43,14 +51,14 @@ extension PackageRegistryController {
         let dirOutput = try await githubAPIClient.getContent(dirInput)
         // Get the filenames of all the versioned and unversioned
         // package manifests in the directory.
-        let manifestFileNames = try Manifest.fileNames(from: dirOutput.directoryFileNames)
+        let manifestFileNames = try APIUtilities.Manifest.fileNames(from: dirOutput.directoryFileNames)
         // If we don't have any manifests, then fail out
         guard !manifestFileNames.isEmpty else {
             throw Abort(.notFound, title: "No manifest files found.")
         }
         logger.debug("Fetched repo root directory - found \(manifestFileNames.count) manifests for \"\(owner).\(repo)\" version: \(version)")
         // Fetch all the manifests in parallel
-        let fetchedManifests = try await withThrowingTaskGroup(of: PersistenceClient.Manifest.self, returning: [PersistenceClient.Manifest].self) { group in
+        let fetchedManifests = try await withThrowingTaskGroup(of: PackageManifestWithContents.self, returning: [PackageManifestWithContents].self) { group in
             manifestFileNames.forEach { manifestFileName in
                 group.addTask {
                     try await Self.fetchManifest(
@@ -64,19 +72,39 @@ extension PackageRegistryController {
                     )
                 }
             }
-            var manifests = [PersistenceClient.Manifest]()
+            var manifests = [PackageManifestWithContents]()
             for try await manifest in group {
                 manifests.append(manifest)
             }
             return manifests
         }
         logger.debug("Fetched \(fetchedManifests.count) manifests for \"\(owner).\(repo)\" version: \(version)")
-        // Persist these manifests. For each of these, the cachedFilePath is now filled in.
-        let savedManifests = try await persistenceClient.saveManifests(owner: owner, repo: repo, version: version, manifests: fetchedManifests)
-        logger.debug("Saved \(savedManifests.count) manifests to cache for \"\(owner).\(repo)\" version: \(version)")
+        // Write out all of the manifests in parallel
+        let cachedPackageManifests = try await withThrowingTaskGroup(of: CachedPackageManifest.self, returning: [CachedPackageManifest].self) { group in
+            fetchedManifests.forEach { fetchedManifest in
+                group.addTask {
+                    try await Self.saveManifestFile(
+                        packageManifestWithContents: fetchedManifest,
+                        cacheRootDirectory: cacheRootDirectory,
+                        uuidGenerator: uuidGenerator,
+                        fileIO: fileIO
+                    )
+                }
+            }
+            var manifests = [CachedPackageManifest]()
+            for try await manifest in group {
+                manifests.append(manifest)
+            }
+            return manifests
+        }
+        // Save the cached package manifests to the DB
+        try await databaseActor.addCachedPackageManifests(
+            cachedPackageManifests,
+            logger: logger,
+            database: database
+        )
 
-        // Return the saved manifests (that include the cachedFilePath), but strip out the contents
-        return savedManifests.map(\.withoutContents)
+        return cachedPackageManifests
     }
 
     private static func fetchManifest(
@@ -84,23 +112,61 @@ extension PackageRegistryController {
         repo: String,
         version: Version,
         tagName: String,
-        manifestFileName: Manifest.FileName,
+        manifestFileName: APIUtilities.Manifest.FileName,
         githubAPIClient: GithubAPIClient,
         logger: Logger
-    ) async throws -> PersistenceClient.Manifest {
+    ) async throws -> PackageManifestWithContents {
         logger.debug("Fetching \"\(manifestFileName.fileName)\" for \"\(owner).\(repo)\" version: \(version)")
         let clientInput = GithubAPIClient.GetContent.Input(owner: owner, repo: repo, path: .file(manifestFileName.fileName), ref: tagName)
         let clientOutput = try await githubAPIClient.getContent(clientInput)
         let file = try clientOutput.okBody.file
         let fileContents = try file.decodedContent
-        let swiftToolsVersion = try SwiftToolsVersionParser().parse(fileContents)
+        guard let swiftToolsVersion = try SwiftToolsVersionParser().parse(fileContents) else {
+            logger.error("No swift-tools-version found for \"\(owner).\(repo)\" version: \(version) swiftVersion: \(String(describing: manifestFileName.swiftVersion))")
+            throw SwiftPackageRegistryServiceError.manifestHasNoSwiftToolsVersion(
+                owner: owner,
+                repo: repo,
+                version: version.description,
+                swiftVersion: manifestFileName.swiftVersion
+            )
+        }
         logger.debug("Fetched \"\(manifestFileName.fileName)\" for \"\(owner).\(repo)\" version: \(version) swiftToolsVersion: \(String(describing: swiftToolsVersion))")
         return .init(
-            fileName: manifestFileName.fileName,
-            swiftVersion: manifestFileName.swiftVersion,
-            swiftToolsVersion: swiftToolsVersion,
+            packageManifest: .init(
+                packageScope: owner,
+                packageName: repo,
+                packageVersion: version.description,
+                swiftVersion: manifestFileName.swiftVersion,
+                swiftToolsVersion: swiftToolsVersion
+            ),
             contents: ByteBuffer(string: fileContents)
         )
+    }
+
+    private static func saveManifestFile(
+        packageManifestWithContents: PackageManifestWithContents,
+        cacheRootDirectory: String,
+        uuidGenerator: UUIDGenerator,
+        fileIO: FileIO
+    ) async throws -> CachedPackageManifest {
+        // Generate a file name for the manifest
+        let manifestFileName = "\(uuidGenerator().uuidString).swift"
+        // Get the full path to the cached file
+        let manifestFilePath = Self.manifestFilePath(
+            cacheRootDirectory: cacheRootDirectory,
+            manifestFileName: manifestFileName
+        )
+        // Write out the manifest file
+        try await fileIO.writeFile(packageManifestWithContents.contents, at: manifestFilePath)
+        // Return the CachedPackageManifest
+        return .init(
+            packageManifest: packageManifestWithContents.packageManifest,
+            cacheFileName: manifestFileName
+        )
+    }
+
+    static func manifestFilePath(cacheRootDirectory: String, manifestFileName: String) -> String {
+        "\(cacheRootDirectory)/manifests/\(manifestFileName)"
     }
 }
 
@@ -159,5 +225,20 @@ private extension GithubAPIClient.GetContent.OKBody.File {
             }
             return decodedString
         }
+    }
+}
+
+extension Manifest {
+    var asCachedPackageManifest: CachedPackageManifest {
+        .init(
+            packageManifest: .init(
+                packageScope: packageScope,
+                packageName: packageName,
+                packageVersion: packageVersion,
+                swiftVersion: swiftVersion,
+                swiftToolsVersion: swiftToolsVersion
+            ),
+            cacheFileName: cacheFileName
+        )
     }
 }

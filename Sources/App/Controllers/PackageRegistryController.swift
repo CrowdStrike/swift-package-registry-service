@@ -12,6 +12,7 @@ struct PackageRegistryController: RouteCollection {
     typealias GetDateNow = @Sendable () -> Date
 
     let serverURLString: String
+    let cacheRootDirectory: String
     let clientSupportsPagination: Bool
     let githubAPIToken: String
     let githubAPIClient: GithubAPIClient
@@ -22,11 +23,13 @@ struct PackageRegistryController: RouteCollection {
     let getDateNow: GetDateNow
     let tagsActor: TagsActor
     let releaseMetadataActor: MemoryCacheActor<PersistenceClient.ReleaseMetadata>
-    let manifestsActor: MemoryCacheActor<[PersistenceClient.Manifest]>
+    let manifestsActor: MemoryCacheActor<[CachedPackageManifest]>
     let identifiersActor: IdentifiersActor
 
     init(
         serverURLString: String,
+        cacheRootDirectory: String,
+        uuidGenerator: UUIDGenerator,
         clientSupportsPagination: Bool,
         githubAPIToken: String,
         githubAPIClient: GithubAPIClient,
@@ -37,6 +40,7 @@ struct PackageRegistryController: RouteCollection {
         getDateNow: @escaping GetDateNow = { Date.now }
     ) {
         self.serverURLString = serverURLString
+        self.cacheRootDirectory = cacheRootDirectory
         self.clientSupportsPagination = clientSupportsPagination
         self.githubAPIToken = githubAPIToken
         self.githubAPIClient = githubAPIClient
@@ -58,7 +62,7 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let releaseMetadataActor = MemoryCacheActor { owner, repo, version, reqLogger in
+        let releaseMetadataActor = MemoryCacheActor { owner, repo, version, _, _, reqLogger in
             try await Self.syncReleaseMetadata(
                 owner: owner,
                 repo: repo,
@@ -71,19 +75,23 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let manifestsActor = MemoryCacheActor { owner, repo, version, reqLogger in
+        let databaseActor = DatabaseActor()
+
+        let manifestsActor = MemoryCacheActor { owner, repo, version, fileIO, database, reqLogger in
             try await Self.syncManifests(
                 owner: owner,
                 repo: repo,
                 version: version,
-                persistenceClient: persistenceClient,
+                cacheRootDirectory: cacheRootDirectory,
+                uuidGenerator: uuidGenerator,
                 githubAPIClient: githubAPIClient,
                 tagsActor: tagsActor,
+                databaseActor: databaseActor,
+                database: database,
+                fileIO: fileIO,
                 logger: reqLogger
             )
         }
-
-        let databaseActor = DatabaseActor()
 
         let identifiersActor = IdentifiersActor { githubURL, reqLogger, database in
             try await Self.fetchPackageID(
