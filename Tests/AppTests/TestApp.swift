@@ -1,4 +1,5 @@
 @testable import App
+import Dependencies
 import GithubAPIClient
 import ChecksumClient
 import HTTPStreamClient
@@ -20,6 +21,7 @@ func testApp(
         try await configure(
             app,
             environment: .testing,
+            cacheRootDirectory: "",
             githubAPIClient: githubAPIClient,
             checksumClient: checksumClient,
             httpStreamClient: httpStreamClient,
@@ -27,6 +29,7 @@ func testApp(
             logger: app.logger,
             githubAPIToken: githubAPIToken,
             sqliteConfiguration: .memory,
+            uuidGenerator: .incrementing,
             clientSupportsPagination: clientSupportsPagination
         )
         try await testAction(app)
