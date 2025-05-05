@@ -40,7 +40,7 @@ final class PackageRelease: Model, @unchecked Sendable {
         packageName: String,
         packageVersion: String,
         tagName: String,
-        publishedAt: Date,
+        publishedAt: Date?,
         zipBallURL: String,
         cacheFileName: String,
         checksum: String
