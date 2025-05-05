@@ -148,7 +148,6 @@ actor DatabaseActor {
             .filter(\.$packageName == packageRelease.packageName)
             .filter(\.$packageVersion == packageRelease.packageVersion)
             .count()
-        let packageReleaseId = "\(packageRelease.packageScope).\(packageRelease.packageName) \(packageRelease.packageVersion)"
         guard packageReleaseCount == 0 else {
             logger.debug("PackageRelease \(packageRelease.idText) already exists in database. Skipping database add.")
             return
