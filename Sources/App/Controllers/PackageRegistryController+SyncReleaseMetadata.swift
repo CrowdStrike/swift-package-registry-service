@@ -18,6 +18,7 @@ extension PackageRegistryController {
         databaseActor: DatabaseActor,
         cacheRootDirectory: String,
         uuidGenerator: UUIDGenerator,
+        githubAPIToken: String,
         req: Request
     ) async throws -> PackageReleaseMetadata {
         let packageRelease = try await PackageRelease.query(on: req.db)
@@ -27,10 +28,10 @@ extension PackageRegistryController {
             .first()
         let releaseId = "\"\(owner).\(repo)\" \(version.description)"
         if let packageRelease {
-            req.logger.debug("Found cached PackageRelease for \(releaseId)")
+            req.logger.debug("Found cached PackageReleaseMetadata for \(releaseId)")
             return packageRelease.asPackageReleaseMetadata
         } else {
-            req.logger.debug("Did not find cached PackageRelease for \(releaseId)")
+            req.logger.debug("Did not find cached PackageReleaseMetadata for \(releaseId)")
         }
 
         // Get the cached tag information. Since the fetchReleaseMetadata call
@@ -74,7 +75,8 @@ extension PackageRegistryController {
             url: tag.zipBallURL,
             to: cachedSourceArchivePath,
             httpClient: req.application.http.client.shared,
-            logger: req.logger
+            logger: req.logger,
+            githubAPIToken: githubAPIToken
         )
         req.logger.debug("Downloaded \"\(tag.zipBallURL)\" to \"\(cachedSourceArchivePath)\"")
 
@@ -96,7 +98,7 @@ extension PackageRegistryController {
 
         // Write the PackageReleaseMetadata to the DB
         try await databaseActor.addPackageRelease(packageReleaseMetadata, logger: req.logger, database: req.db)
-        req.logger.debug("Cached release metadata for \"\(owner).\(repo)\" version: \(version).")
+        req.logger.debug("Cached PackageReleaseMetadata metadata for \(releaseId).")
 
         return packageReleaseMetadata
     }
@@ -105,9 +107,18 @@ extension PackageRegistryController {
         url: String,
         to path: String,
         httpClient: HTTPClient,
-        logger: Logger
+        logger: Logger,
+        githubAPIToken: String
     ) async throws {
-        let request = try HTTPClient.Request(url: url)
+        let request = try HTTPClient.Request(
+            url: url,
+            headers: .init(
+                [
+                    ("User-Agent", "async-http-client/1.24.2"),
+                    ("Authorization", "Bearer \(githubAPIToken)")
+                ]
+            )
+        )
 
         let delegate = try FileDownloadDelegate(path: path, reportProgress: { progress in
             if let totalBytes = progress.totalBytes {
@@ -130,8 +141,17 @@ extension PackageRegistryController {
         cacheRootDirectory: String,
         sourceArchiveFileName: String
     ) -> String {
-        "\(cacheRootDirectory)/sourceArchives/\(sourceArchiveFileName)"
+        var path = cacheRootDirectory
+        if !path.hasSuffix("/") {
+            path += "/"
+        }
+        path += Self.sourceArchivesCacheDirectoryName
+        path += "/"
+        path += sourceArchiveFileName
+        return path
     }
+
+    static let sourceArchivesCacheDirectoryName = "sourceArchives"
 }
 
 private extension PackageRelease {

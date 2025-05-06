@@ -75,6 +75,7 @@ struct PackageRegistryController: RouteCollection {
                 databaseActor: databaseActor,
                 cacheRootDirectory: cacheRootDirectory,
                 uuidGenerator: uuidGenerator,
+                githubAPIToken: githubAPIToken,
                 req: req
             )
         }
