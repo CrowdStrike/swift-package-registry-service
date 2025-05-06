@@ -164,8 +164,17 @@ extension PackageRegistryController {
     }
 
     static func manifestFilePath(cacheRootDirectory: String, manifestFileName: String) -> String {
-        "\(cacheRootDirectory)/manifests/\(manifestFileName)"
+        var path = cacheRootDirectory
+        if !path.hasSuffix("/") {
+            path += "/"
+        }
+        path += manifestsCacheDirectoryName
+        path += "/"
+        path += manifestFileName
+        return path
     }
+
+    static let manifestsCacheDirectoryName = "manifests"
 }
 
 private extension GithubAPIClient.GetContent.Output {
