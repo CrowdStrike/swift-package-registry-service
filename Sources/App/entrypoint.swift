@@ -22,8 +22,14 @@ enum Entrypoint {
         let httpStreamClient: HTTPStreamClient = .live()
         let cacheRootDirectory = app.directory.workingDirectory.appending(".sprsCache/")
         try await Self.ensureDirectoryExists(cacheRootDirectory)
-        let manifestsCacheDirectory = cacheRootDirectory.appending("manifests/")
+        let manifestsCacheDirectory = cacheRootDirectory
+            .appending(PackageRegistryController.manifestsCacheDirectoryName)
+            .appending("/")
         try await Self.ensureDirectoryExists(manifestsCacheDirectory)
+        let sourceArchivesCacheDirectory = cacheRootDirectory
+            .appending(PackageRegistryController.sourceArchivesCacheDirectoryName)
+            .appending("/")
+        try await Self.ensureDirectoryExists(sourceArchivesCacheDirectory)
         let dbPath = cacheRootDirectory.appending("db.sqlite")
         @Dependency(\.uuid) var uuid
         do {

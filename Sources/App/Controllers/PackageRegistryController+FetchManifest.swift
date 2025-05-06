@@ -24,9 +24,7 @@ extension PackageRegistryController {
             owner: owner,
             repo: repo,
             version: version,
-            fileIO: req.fileio,
-            database: req.db,
-            logger: req.logger
+            req: req
         )
 
         let swiftMediaType = HTTPMediaType(type: "text", subType: "x-swift")

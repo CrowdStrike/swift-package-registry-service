@@ -11,7 +11,7 @@ import Vapor
 /// with same `owner`, `repo`, and `version` for both requests, then the second one must will wait on the first one
 /// to complete before it completes.
 actor MemoryCacheActor<T: Equatable & Sendable & Codable> {
-    typealias DataLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version, _ fileIO: FileIO, _ database: any Database, _ logger: Logger) async throws -> T
+    typealias DataLoader = @Sendable (_ owner: String, _ repo: String, _ version: Version, _ req: Request) async throws -> T
 
     private var memoryCache: [String: ReleaseMetadataState] = [:]
     private let dataLoader: DataLoader
@@ -24,24 +24,22 @@ actor MemoryCacheActor<T: Equatable & Sendable & Codable> {
         owner: String,
         repo: String,
         version: Version,
-        fileIO: FileIO,
-        database: any Database,
-        logger: Logger
+        req: Request
     ) async throws -> T {
         let cacheKey = Self.makeCacheKey(owner, repo, version)
         if let state = memoryCache[cacheKey] {
             switch state {
             case .loaded(let data):
-                logger.debug("Loaded \(T.self) from memory cache for \(cacheKey)")
+                req.logger.debug("Loaded \(T.self) from memory cache for \(cacheKey)")
                 return data
             case .loading(let task):
-                logger.debug("\(T.self) memory cache is loading for \(cacheKey). Awaiting loading task.")
+                req.logger.debug("\(T.self) memory cache is loading for \(cacheKey). Awaiting loading task.")
                 return try await task.value
             }
         }
 
         let task = Task {
-            try await dataLoader(owner, repo, version, fileIO, database, logger)
+            try await dataLoader(owner, repo, version, req)
         }
 
         memoryCache[cacheKey] = .loading(task)
@@ -49,11 +47,11 @@ actor MemoryCacheActor<T: Equatable & Sendable & Codable> {
         do {
             let data = try await task.value
             memoryCache[cacheKey] = .loaded(data)
-            logger.debug("Loaded \(T.self) from dataLoader for \(cacheKey)")
+            req.logger.debug("Loaded \(T.self) from dataLoader for \(cacheKey)")
             return data
         } catch {
             memoryCache[cacheKey] = nil
-            logger.error("\(T.self) dataLoader threw an error for \(cacheKey): \(error)")
+            req.logger.error("\(T.self) dataLoader threw an error for \(cacheKey): \(error)")
             throw error
         }
     }
