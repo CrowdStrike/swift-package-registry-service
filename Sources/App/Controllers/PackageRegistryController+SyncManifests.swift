@@ -15,31 +15,29 @@ extension PackageRegistryController {
         githubAPIClient: GithubAPIClient,
         tagsActor: TagsActor,
         databaseActor: DatabaseActor,
-        database: any Database,
-        fileIO: FileIO,
-        logger: Logger
+        req: Request
     ) async throws ->  [CachedPackageManifest] {
         // Attempt to read in all of the package manifests from db
-        let manifests = try await Manifest.query(on: database)
+        let manifests = try await Manifest.query(on: req.db)
             .filter(\.$packageScope == owner)
             .filter(\.$packageName == repo)
             .filter(\.$packageVersion == version.description)
             .all()
         guard manifests.isEmpty else {
-            logger.debug("Found \(manifests.count) cached manifests for \"\(owner).\(repo)\" version: \(version)")
+            req.logger.debug("Found \(manifests.count) cached manifests for \"\(owner).\(repo)\" version: \(version)")
             return manifests.map(\.asCachedPackageManifest)
         }
-        logger.debug("Did not find any cached manifests for \"\(owner).\(repo)\" version: \(version)")
+        req.logger.debug("Did not find any cached manifests for \"\(owner).\(repo)\" version: \(version)")
 
         // Get the cached tag information. Since the fetchManifest call
         // almost always comes after the listPackageReleases call in SPM, then
         // we assume that we already did a tag sync when the listPackageReleases
         // was called. So we don't force a sync now.
-        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: false, logger: logger)
+        let tagFile = try await tagsActor.loadTagFile(owner: owner, repo: repo, forceSync: false, logger: req.logger)
 
         // Look up the tag name for the requested semantic version
         guard let tagName = tagFile.versionToTagName[version] else {
-            logger.error("Could not find tag with semantic version \"\(version)\" for \"\(owner).\(repo)\".")
+            req.logger.error("Could not find tag with semantic version \"\(version)\" for \"\(owner).\(repo)\".")
             throw Abort(.internalServerError, title: "Could not find tag with semantic version \"\(version)\".")
         }
 
@@ -56,7 +54,7 @@ extension PackageRegistryController {
         guard !manifestFileNames.isEmpty else {
             throw Abort(.notFound, title: "No manifest files found.")
         }
-        logger.debug("Fetched repo root directory - found \(manifestFileNames.count) manifests for \"\(owner).\(repo)\" version: \(version)")
+        req.logger.debug("Fetched repo root directory - found \(manifestFileNames.count) manifests for \"\(owner).\(repo)\" version: \(version)")
         // Fetch all the manifests in parallel
         let fetchedManifests = try await withThrowingTaskGroup(of: PackageManifestWithContents.self, returning: [PackageManifestWithContents].self) { group in
             manifestFileNames.forEach { manifestFileName in
@@ -68,7 +66,7 @@ extension PackageRegistryController {
                         tagName: tagName,
                         manifestFileName: manifestFileName,
                         githubAPIClient: githubAPIClient,
-                        logger: logger
+                        logger: req.logger
                     )
                 }
             }
@@ -78,7 +76,7 @@ extension PackageRegistryController {
             }
             return manifests
         }
-        logger.debug("Fetched \(fetchedManifests.count) manifests for \"\(owner).\(repo)\" version: \(version)")
+        req.logger.debug("Fetched \(fetchedManifests.count) manifests for \"\(owner).\(repo)\" version: \(version)")
         // Write out all of the manifests in parallel
         let cachedPackageManifests = try await withThrowingTaskGroup(of: CachedPackageManifest.self, returning: [CachedPackageManifest].self) { group in
             fetchedManifests.forEach { fetchedManifest in
@@ -87,7 +85,7 @@ extension PackageRegistryController {
                         packageManifestWithContents: fetchedManifest,
                         cacheRootDirectory: cacheRootDirectory,
                         uuidGenerator: uuidGenerator,
-                        fileIO: fileIO
+                        fileIO: req.fileio
                     )
                 }
             }
@@ -100,8 +98,8 @@ extension PackageRegistryController {
         // Save the cached package manifests to the DB
         try await databaseActor.addCachedPackageManifests(
             cachedPackageManifests,
-            logger: logger,
-            database: database
+            logger: req.logger,
+            database: req.db
         )
 
         return cachedPackageManifests
@@ -166,8 +164,17 @@ extension PackageRegistryController {
     }
 
     static func manifestFilePath(cacheRootDirectory: String, manifestFileName: String) -> String {
-        "\(cacheRootDirectory)/manifests/\(manifestFileName)"
+        var path = cacheRootDirectory
+        if !path.hasSuffix("/") {
+            path += "/"
+        }
+        path += manifestsCacheDirectoryName
+        path += "/"
+        path += manifestFileName
+        return path
     }
+
+    static let manifestsCacheDirectoryName = "manifests"
 }
 
 private extension GithubAPIClient.GetContent.Output {

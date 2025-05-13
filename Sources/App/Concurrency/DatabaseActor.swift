@@ -7,6 +7,7 @@ import Vapor
 actor DatabaseActor {
     private let repositorySemaphore = AsyncSemaphore(value: 1)
     private let manifestsSemaphore = AsyncSemaphore(value: 1)
+    private let packageReleaseSemaphore = AsyncSemaphore(value: 1)
 
     func addRepository(
         _ repository: GithubAPIClient.Repository,
@@ -124,6 +125,47 @@ actor DatabaseActor {
         logger.debug("Adding manifest to database: \(manifestToAdd).")
         try await manifestToAdd.create(on: database)
         logger.debug("Added manifest to database: \(manifestToAdd).")
+    }
+
+    func addPackageRelease(
+        _ packageRelease: PackageReleaseMetadata,
+        logger: Logger,
+        database: any Database
+    ) async throws {
+        await packageReleaseSemaphore.wait()
+        defer { packageReleaseSemaphore.signal() }
+
+        try await _addPackageRelease(packageRelease, logger: logger, database: database)
+    }
+
+    private func _addPackageRelease(
+        _ packageRelease: PackageReleaseMetadata,
+        logger: Logger,
+        database: any Database
+    ) async throws {
+        let packageReleaseCount = try await PackageRelease.query(on: database)
+            .filter(\.$packageScope == packageRelease.packageScope)
+            .filter(\.$packageName == packageRelease.packageName)
+            .filter(\.$packageVersion == packageRelease.packageVersion)
+            .count()
+        guard packageReleaseCount == 0 else {
+            logger.debug("PackageRelease \(packageRelease.idText) already exists in database. Skipping database add.")
+            return
+        }
+
+        let packageReleaseToAdd = PackageRelease(
+            packageScope: packageRelease.packageScope,
+            packageName: packageRelease.packageName,
+            packageVersion: packageRelease.packageVersion,
+            tagName: packageRelease.tagName,
+            publishedAt: packageRelease.publishedAt,
+            zipBallURL: packageRelease.zipBallURL,
+            cacheFileName: packageRelease.cacheFileName,
+            checksum: packageRelease.checksum
+        )
+        logger.debug("Adding PackageRelease \(packageRelease.idText) to database.")
+        try await packageReleaseToAdd.create(on: database)
+        logger.debug("Added PackageRelease \(packageRelease.idText) to database.")
     }
 }
 
