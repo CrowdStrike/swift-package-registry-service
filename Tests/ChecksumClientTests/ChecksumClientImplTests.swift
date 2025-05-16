@@ -13,7 +13,7 @@ struct ChecksumClientTests {
         let url = try #require(Bundle.module.url(forResource: "swift-overture-0.5.0", withExtension: "zip"))
         let contents = try Data(contentsOf: url)
 
-        var hashFunction = ChecksumClientImpl.CryptoKitSHA256()
+        var hashFunction = CryptoKitSHA256()
 
         // Break up into 1k chunks
         let chunkSize = 1024
@@ -43,7 +43,7 @@ struct ChecksumClientTests {
         let checkSumClient = ChecksumClient.live(
             httpStreamClient: .test(response: httpClientResponse),
             fileClient: .mock,
-            getHashAlgorithm: { ChecksumClientImpl.CryptoKitSHA256() }
+            getHashAlgorithm: { CryptoKitSHA256() }
         )
         let checksum = try await checkSumClient.computeChecksum(.mock)
         #expect(checksum.checksum == "06bc2e1e4f22b40bc2c4c045d7559bcceb94e684cd32ebb295eee615890d724e")
@@ -63,7 +63,7 @@ struct ChecksumClientTests {
         let checkSumClient = ChecksumClient.live(
             httpStreamClient: .test(response: httpClientResponse),
             fileClient: .mock,
-            getHashAlgorithm: { ChecksumClientImpl.CryptoKitSHA256() }
+            getHashAlgorithm: { CryptoKitSHA256() }
         )
         let checksum = try await checkSumClient.computeChecksum(.mock)
         #expect(checksum.checksum == "06bc2e1e4f22b40bc2c4c045d7559bcceb94e684cd32ebb295eee615890d724e")
