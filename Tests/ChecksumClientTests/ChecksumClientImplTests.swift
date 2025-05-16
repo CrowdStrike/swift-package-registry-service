@@ -1,6 +1,5 @@
 @testable import AsyncHTTPClient
-import ChecksumClient
-@testable import ChecksumClientImpl
+@testable import ChecksumClient
 import CryptoKit
 import Foundation
 import HTTPStreamClient
@@ -8,7 +7,7 @@ import NIOCore
 import NIOHTTP1
 import Testing
 
-struct ChecksumClientImplTests {
+struct ChecksumClientTests {
 
     @Test func cryptoKitSHA256() throws {
         let url = try #require(Bundle.module.url(forResource: "swift-overture-0.5.0", withExtension: "zip"))

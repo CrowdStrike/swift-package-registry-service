@@ -1,5 +1,4 @@
 import AsyncHTTPClient
-import ChecksumClient
 import FileClient
 import Foundation
 import HTTPStreamClient

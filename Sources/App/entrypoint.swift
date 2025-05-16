@@ -1,5 +1,4 @@
 import ChecksumClient
-import ChecksumClientImpl
 import Dependencies
 import FileClient
 import GithubAPIClient
