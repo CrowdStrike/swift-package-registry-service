@@ -22,7 +22,7 @@ struct PackageRegistryController: RouteCollection {
     let appLogger: Logger
     let getDateNow: GetDateNow
     let tagsActor: TagsActor
-    let releaseMetadataActor: MemoryCacheActor<PersistenceClient.ReleaseMetadata>
+    let releaseMetadataActor: MemoryCacheActor<PackageReleaseMetadata>
     let manifestsActor: MemoryCacheActor<[CachedPackageManifest]>
     let identifiersActor: IdentifiersActor
 
@@ -62,22 +62,25 @@ struct PackageRegistryController: RouteCollection {
             )
         }
 
-        let releaseMetadataActor = MemoryCacheActor { owner, repo, version, _, _, reqLogger in
+        let databaseActor = DatabaseActor()
+
+        let releaseMetadataActor = MemoryCacheActor { owner, repo, version, req in
             try await Self.syncReleaseMetadata(
                 owner: owner,
                 repo: repo,
                 version: version,
                 githubAPIClient: githubAPIClient,
-                persistenceClient: persistenceClient,
                 checksumClient: checksumClient,
-                logger: reqLogger,
-                tagsActor: tagsActor
+                tagsActor: tagsActor,
+                databaseActor: databaseActor,
+                cacheRootDirectory: cacheRootDirectory,
+                uuidGenerator: uuidGenerator,
+                githubAPIToken: githubAPIToken,
+                req: req
             )
         }
 
-        let databaseActor = DatabaseActor()
-
-        let manifestsActor = MemoryCacheActor { owner, repo, version, fileIO, database, reqLogger in
+        let manifestsActor = MemoryCacheActor { owner, repo, version, req in
             try await Self.syncManifests(
                 owner: owner,
                 repo: repo,
@@ -87,9 +90,7 @@ struct PackageRegistryController: RouteCollection {
                 githubAPIClient: githubAPIClient,
                 tagsActor: tagsActor,
                 databaseActor: databaseActor,
-                database: database,
-                fileIO: fileIO,
-                logger: reqLogger
+                req: req
             )
         }
 

@@ -33,7 +33,7 @@ let package = Package(
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
                 .product(name: "SystemPackage", package: "swift-system"),
-                .target(name: "ChecksumClientImpl"),
+                .target(name: "ChecksumClient"),
                 .target(name: "GithubAPIClientImpl"),
                 .target(name: "APIUtilities"),
                 .target(name: "HTTPStreamClient"),
@@ -104,19 +104,11 @@ let package = Package(
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "DependenciesMacros", package: "swift-dependencies"),
-            ]
-        ),
-        .target(
-            name: "ChecksumClientImpl",
-            dependencies: [
-                .target(name: "ChecksumClient"),
-                .target(name: "FileClient"),
-                .target(name: "HTTPStreamClient"),
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "Overture", package: "swift-overture"),
                 .product(name: "Vapor", package: "vapor"),
             ]
         ),
-        .target(
+       .target(
             name: "HTTPStreamClient",
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
@@ -168,9 +160,10 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "ChecksumClientImplTests",
+            name: "ChecksumClientTests",
             dependencies: [
-                .target(name: "ChecksumClientImpl"),
+                .target(name: "ChecksumClient"),
+                .target(name: "APIUtilities"),
             ],
             resources: [
                 .process("Resources/swift-overture-0.5.0.zip"),

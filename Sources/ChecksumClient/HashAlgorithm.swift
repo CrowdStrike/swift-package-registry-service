@@ -19,33 +19,6 @@ public protocol HashAlgorithm: Sendable {
     func finalize() -> [UInt8]
 }
 
-/// SHA-256 implementation from Secure Hash Algorithm 2 (SHA-2) set of
-/// cryptographic hash functions (FIPS PUB 180-2).
-///  Uses CryptoKit where available
-public struct SHA256: HashAlgorithm, Sendable {
-    private var underlying: HashAlgorithm
-
-    public init() {
-        #if canImport(CryptoKit)
-        if #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) {
-            self.underlying = CryptoKitSHA256()
-        } else {
-            self.underlying = InternalSHA256()
-        }
-        #else
-        self.underlying = InternalSHA256()
-        #endif
-    }
-
-    public mutating func hash(_ bytes: [UInt8]) {
-        underlying.hash(bytes)
-    }
-
-    public func finalize() -> [UInt8] {
-        underlying.finalize()
-    }
-}
-
 #if canImport(CryptoKit)
 /// Wraps CryptoKit.SHA256 to provide a HashAlgorithm conformance to it.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
