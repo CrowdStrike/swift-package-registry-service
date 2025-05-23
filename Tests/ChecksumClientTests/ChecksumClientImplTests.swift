@@ -1,3 +1,4 @@
+import APIUtilities
 @testable import AsyncHTTPClient
 @testable import ChecksumClient
 import CryptoKit

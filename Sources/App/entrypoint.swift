@@ -37,7 +37,7 @@ enum Entrypoint {
                 environment: env,
                 cacheRootDirectory: cacheRootDirectory,
                 githubAPIClient: .live(),
-                checksumClient: .live(httpStreamClient: httpStreamClient, fileClient: fileClient),
+                checksumClient: .live(),
                 httpStreamClient: httpStreamClient,
                 persistenceClient: .live(
                     fileClient: fileClient,

@@ -80,8 +80,15 @@ extension PackageRegistryController {
         )
         req.logger.debug("Downloaded \"\(tag.zipBallURL)\" to \"\(cachedSourceArchivePath)\"")
 
-        // Compute the checksum from the cached source archive .zip file
-        let checksum = try await checksumClient.computeFileChecksum(path: cachedSourceArchivePath)
+        var hashAlgorithm = checksumClient.createChecksum()
+        let fileChunks = try await req.fileio.readFile(at: cachedSourceArchivePath)
+        for try await fileChunk in fileChunks {
+            guard let fileChunkBytes = fileChunk.getBytes(at: 0, length: fileChunk.readableBytes) else {
+                throw SwiftPackageRegistryServiceError.couldNotGetFileChunk(path: cachedSourceArchivePath)
+            }
+            hashAlgorithm.hash(fileChunkBytes)
+        }
+        let checksum = hashAlgorithm.finalize().hexadecimalRepresentation
         req.logger.debug("Computed checksum of \"\(cachedSourceArchivePath)\" as \(checksum)")
 
         // Construct the PackageReleaseMetadata

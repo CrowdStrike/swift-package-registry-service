@@ -104,9 +104,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "DependenciesMacros", package: "swift-dependencies"),
-                .target(name: "FileClient"),
-                .target(name: "HTTPStreamClient"),
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "Overture", package: "swift-overture"),
                 .product(name: "Vapor", package: "vapor"),
             ]
         ),
@@ -165,6 +163,7 @@ let package = Package(
             name: "ChecksumClientTests",
             dependencies: [
                 .target(name: "ChecksumClient"),
+                .target(name: "APIUtilities"),
             ],
             resources: [
                 .process("Resources/swift-overture-0.5.0.zip"),
